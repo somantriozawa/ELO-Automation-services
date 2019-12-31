@@ -1,0 +1,6 @@
+    var curSord = ixConnect.ix().checkoutSord(EM_PARAM1, EditInfoC.mbSord, LockC.NO).sord;
+    var objIdSec = ix.getIndexValueByName(curSord, "OBJIDCOVENANT");
+    var secSord = ixConnect.ix().checkoutSord(objIdSec, EditInfoC.mbSord, LockC.NO).sord;
+    ix.setIndexValueByName(secSord, "DPMO_STATUSREMINDER", "OFF");
+    ixConnect.ix().checkinSord(secSord, SordC.mbAllIndex, LockC.NO);
+    elo.setAnswer("Reminder sudah off");
