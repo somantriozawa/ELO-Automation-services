@@ -1,0 +1,18 @@
+if(EM_WF_NODE.nodeName == "SET_OFF"){
+    var curSord = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO).sord;
+    var objIdSec = ix.getIndexValueByName(curSord, "OBJIDCOVENANT");
+    var secSord = ixConnect.ix().checkoutSord(objIdSec, EditInfoC.mbSord, LockC.NO).sord;
+    ix.setIndexValueByName(secSord, "DPMO_STATUSREMINDER", "OFF");
+    ixConnect.ix().checkinSord(secSord, SordC.mbAllIndex, LockC.NO);
+    elo.setAnswer("Reminder sudah off");
+    EM_WF_NEXT = "0";
+}
+if(EM_WF_NODE.nodeName == "SET_ON"){
+    var curSord = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO).sord;
+    var objIdSec = ix.getIndexValueByName(curSord, "OBJIDCOVENANT");
+    var secSord = ixConnect.ix().checkoutSord(objIdSec, EditInfoC.mbSord, LockC.NO).sord;
+    ix.setIndexValueByName(secSord, "DPMO_STATUSREMINDER", "ON");
+    ixConnect.ix().checkinSord(secSord, SordC.mbAllIndex, LockC.NO);
+    elo.setAnswer("Reminder sudah on");
+    EM_WF_NEXT = "0";
+}
