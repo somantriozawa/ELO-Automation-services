@@ -1,0 +1,134 @@
+function tambahHari(calen, hari, hariKerja) { //Calendar, int, bool
+    var cal = Calendar.getInstance();
+    cal.setTime(calen.getTime());
+    var liburan = 0;
+    for (i = 0; i < hari; i++) {
+        cal.add(Calendar.DATE, 1);
+        if (hariKerja &&
+            (cal.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY ||
+             cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY))
+            liburan++;
+    }
+    if (liburan > 0)
+        cal.add(Calendar.DATE, liburan);
+    return cal;
+}
+function genDate(cal, genType) {
+    if (genType.equals("Bulanan")) {
+        var dom = cal.get(Calendar.DAY_OF_MONTH);
+        cal.add(Calendar.MONTH, 1);
+        cal.set(Calendar.DAY_OF_MONTH, 1);
+        return cal;
+    } else if (genType.equals("Triwulan")) {
+        var dom = cal.get(Calendar.DAY_OF_MONTH);
+        var m = cal.get(Calendar.MONTH);
+        cal.add(Calendar.MONTH, 3);
+        m = cal.get(Calendar.MONTH);
+        if (m < Calendar.APRIL)
+            cal.set(Calendar.MONTH, Calendar.JANUARY);
+        else if (m < Calendar.JULY)
+            cal.set(Calendar.MONTH, Calendar.APRIL);
+        else if (m < Calendar.OCTOBER)
+            cal.set(Calendar.MONTH, Calendar.JULY);
+        else
+            cal.set(Calendar.MONTH, Calendar.OCTOBER);
+        cal.set(Calendar.DAY_OF_MONTH, 1);
+        return cal;
+    } else if (genType.equals("Semesteran")) {
+        var dom = cal.get(Calendar.DAY_OF_MONTH);
+        var m = cal.get(Calendar.MONTH);
+        cal.add(Calendar.MONTH, 6);
+        m = cal.get(Calendar.MONTH);
+        if (m < Calendar.JULY)
+            cal.set(Calendar.MONTH, Calendar.JANUARY);
+        else
+            cal.set(Calendar.MONTH, Calendar.JULY);
+        cal.set(Calendar.DAY_OF_MONTH, 1);
+        return cal;
+    } else if (genType.equals("Tahunan")) {
+        cal.add(Calendar.YEAR, 1);
+        cal.set(Calendar.MONTH, Calendar.JANUARY);
+        cal.set(Calendar.DAY_OF_MONTH, 1);
+        return cal;
+    }
+}
+function folderNaming(id, cal, genType, perihal) {
+    var bulan = [ "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember" ];
+    var startCal = cal.clone();
+    if (genType.equals("Bulanan")) {
+        startCal.add(Calendar.MONTH, -1);
+        var curMonth = bulan[startCal.get(Calendar.MONTH)];
+        var curYear = startCal.get(Calendar.YEAR);
+        var objId = ix.createSubPath(id, "¶" + curYear, 1);
+        objId = ix.createSubPath(objId, "¶" + perihal + " - " + curMonth + " " + curYear, 321);
+        return objId;
+    } else if (genType.equals("Triwulan")) {
+        startCal.add(Calendar.MONTH, -3);
+        var curYear = startCal.get(Calendar.YEAR);
+        var objId = ix.createSubPath(id, "¶" + curYear, 1);
+        var m = startCal.get(Calendar.MONTH);
+        if (m < Calendar.APRIL)
+            objId = ix.createSubPath(objId, "¶" + perihal + " - Q1 " + curYear, 321);
+        else if (m < Calendar.JULY)
+            objId = ix.createSubPath(objId, "¶" + perihal + " - Q2 " + curYear, 321);
+        else if (m < Calendar.OCTOBER)
+            objId = ix.createSubPath(objId, "¶" + perihal + " - Q3 " + curYear, 321);
+        else
+            objId = ix.createSubPath(objId, "¶" + perihal + " - Q4 " + curYear, 321);
+        return objId;
+    } else if (genType.equals("Semesteran")) {
+        startCal.add(Calendar.MONTH, -6);
+        var curYear = startCal.get(Calendar.YEAR);
+        var objId = ix.createSubPath(id, "¶" + curYear, 1);
+        var m = startCal.get(Calendar.MONTH);
+        if (m < Calendar.JULY)
+            objId = ix.createSubPath(objId, "¶" + perihal + " - S1 " + curYear, 321);
+        else
+            objId = ix.createSubPath(objId, "¶" + perihal + " - S2 " + curYear, 321);
+        return objId;
+    } else {
+        startCal.add(Calendar.MONTH, -12);
+        var curYear = startCal.get(Calendar.YEAR);
+        var objId = ix.createSubPath(id, "¶" + curYear, 1);
+        objId = ix.createSubPath(objId, "¶" + perihal + " - " + curYear, 321);
+        return objId;
+    }
+}
+if (EM_WF_NODE.nodeName == "ELO_NORMAL_GENERATE") {
+    if (EM_ACT_SORD.maskName != "Dokumen Convenant") {
+        elo.setAnswer("Error: Folder bukan folder kopenan");
+        return;
+    }
+    if (!Packages.de.elo.mover.utils.ELOAsSordUtils.isStructure(EM_ACT_SORD)) {
+        elo.setAnswer("Error: Ini bukan folder");
+        return;
+    }
+    var curSord = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO).sord;
+    var startDateIso = ix.getIndexValueByName(curSord, "DPMO_TANGGALSTARTCONVENANT");  // tanggal awal
+    var endDateIso = ix.getIndexValueByName(curSord, "DPMO_TANGGALBERAKHIRCONVENANT"); // tanggal akhir
+    var startDate = Packages.de.elo.mover.utils.ELOAsDateUtils.dateFromIso(startDateIso);
+    var endDate = Packages.de.elo.mover.utils.ELOAsDateUtils.dateFromIso(endDateIso);
+    var startCal = Calendar.getInstance();
+    var endCal = Calendar.getInstance();
+    startCal.setTime(startDate);
+    endCal.setTime(endDate);
+    var genType = ix.getIndexValueByName(curSord, "DPMO_PERIODECONVENANT");
+    startCal = genDate(startCal, genType);
+    while (startCal.before(endCal)) {
+        var perihal = ix.getIndexValueByName(curSord, "DPMO_PERIHAL");
+        var objId = folderNaming(curSord.id, startCal, genType, perihal);
+        var folderSord = ixConnect.ix().checkoutSord(objId, EditInfoC.mbSord, LockC.NO).sord;
+        ix.setIndexValueByName(folderSord, "DPMO_NAMADEBITUR", ix.getIndexValueByName(curSord, "DPMO_NAMADEBITUR"));
+        ix.setIndexValueByName(folderSord, "DPMO_PERIHAL", ix.getIndexValueByName(curSord, "DPMO_PERIHAL"));
+        ix.setIndexValueByName(folderSord, "DPMO_OBJID", curSord.id);
+        ix.setIndexValueByName(folderSord, "DPMO_STATUSREMINDER", "ON");
+        ix.setIndexValueByName(folderSord, "DPMO_NOMORPERJANJIAN", ix.getIndexValueByName(curSord, "DPMO_NOMORPERJANJIAN"));
+        var jumlahHari = parseInt(ix.getIndexValueByName(curSord, "DPMO_JUMLAHHARIJATUHTEMPO"));
+        var hariKerja = ix.getIndexValueByName(curSord, "DPMO_TYPEHARI").equals("Hari Kerja");
+        ix.setIndexValueByName(folderSord, "DPMO_TANGGALJATUHTEMPO", Packages.de.elo.mover.utils.ELOAsDateUtils.isoFromDateShort(tambahHari(startCal, jumlahHari, hariKerja).getTime()));
+        ixConnect.ix().checkinSord(folderSord, SordC.mbAllIndex, LockC.NO);
+        startCal = genDate(startCal, genType);
+    }
+    elo.setAnswer("Proses berhasil");
+    EM_WF_NEXT = "0";
+}
