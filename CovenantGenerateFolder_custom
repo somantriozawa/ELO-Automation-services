@@ -1,0 +1,43 @@
+if(EM_WF_NODE.nodeName == "ELO_CUSTOM_GENERATE"){
+
+var bulan = [ "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember" ];
+if (EM_ACT_SORD.maskName != "Dokumen Convenant") {
+    elo.setAnswer("Error: Folder bukan folder kopenan");
+    return;
+}
+if (!Packages.de.elo.mover.utils.ELOAsSordUtils.isStructure(EM_ACT_SORD)) {
+    elo.setAnswer("Error: Ini bukan folder");
+    return;
+}
+if(ix.getIndexValueByName(EM_ACT_SORD, "DPMO_PERIODECONVENANT") == "Custom"){
+var curSord = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO).sord;
+for (i = 1; i <= 20; i++) {
+    try {
+        var dateIso = ix.getIndexValueByName(curSord, "DPMO_TGLCONVENANT" + i);
+        var convDate = Packages.de.elo.mover.utils.ELOAsDateUtils.dateFromIso(dateIso);
+        var cal = Calendar.getInstance();
+        cal.setTime(convDate);
+        var curDate = cal.get(Calendar.DAY_OF_MONTH);
+        var curMonth = bulan[cal.get(Calendar.MONTH)];
+        var curYear = cal.get(Calendar.YEAR);
+        var perihal = ix.getIndexValueByName(curSord, "DPMO_JENISDOKUMENCONVENANT");
+        var objId = ix.createSubPath(curSord.id, "¶" + curYear, 1);
+        objId = ix.createSubPath(objId, "¶" + perihal + " - " + curDate+ " "+ curMonth + " " + curYear, 321);
+        var folderSord = ixConnect.ix().checkoutSord(objId, EditInfoC.mbSord, LockC.NO).sord;
+        ix.setIndexValueByName(folderSord, "DPMO_NAMADEBITUR", ix.getIndexValueByName(curSord, "DPMO_NAMADEBITUR"));
+        ix.setIndexValueByName(folderSord, "DPMO_PERIHAL", ix.getIndexValueByName(curSord, "DPMO_PERIHAL"));
+        ix.setIndexValueByName(folderSord, "DPMO_TANGGALJATUHTEMPO", ix.getIndexValueByName(curSord, "DPMO_TGLCONVENANT" + i));
+        ix.setIndexValueByName(folderSord, "DPMO_OBJID", curSord.id);
+        ix.setIndexValueByName(folderSord, "DPMO_STATUSREMINDER", "ON");
+    ix.setIndexValueByName(folderSord, "DPMO_NOMORPERJANJIAN", ix.getIndexValueByName(curSord, "DPMO_NOMORPERJANJIAN"));
+        ixConnect.ix().checkinSord(folderSord, SordC.mbAllIndex, LockC.NO);
+    } catch (e) {
+        log.error(e);
+    }
+}
+
+ixConnect.ix().checkinSord(curSord, SordC.mbAllIndex, LockC.NO);}
+elo.setAnswer("Process berhasil!");
+
+    EM_WF_NEXT = "0";
+}
