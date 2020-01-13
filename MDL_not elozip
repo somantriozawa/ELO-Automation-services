@@ -1,0 +1,69 @@
+if(EM_WF_NODE.nodeName == "EXTRACT_MDL"){
+// Download excel file and ready to extract the sheet content
+var file = fu.getTempFile(Sord.id);
+var ixConnectUser = ixConnect; //.createConnectionForUser(EM_ACT_SORD.ownerName);
+var xls = new Packages.com.aspose.cells.Workbook(file);
+var cells = xls.getWorksheets().get(0).getCells();
+cells.get("C2").setValue(new Packages.java.util.Date());
+var edited = false;
+// Loop through each rows and extract the content
+for (i = 4; i <= cells.getMaxDataRow(); i++) {
+    // Prepares the file based on path given from excel file
+    var row = cells.getRows().get(i);
+    try {
+        if (Packages.org.apache.commons.lang3.StringUtils.isBlank(row.get(0).getValue())) { //if empty
+edited = true;
+            let extractedFile = new File("D:\\ELOENTERPRISE\\data\\eloam\\postbox\\1\\"+Packages.de.elo.mover.utils.ELOAsFileUtils.getNameWithoutExtension(row.get(4).getValue()) + ".pdf");
+            var pdf = new Packages.com.aspose.pdf.Document(extractedFile);
+            row.get(1).setValue(pdf.getPages().size());
+            var sord = ixConnectUser.ix().createDoc(0, MDLKWF, null,
+                EditInfoC.mbSordDocAtt).getSord(); //Berkas di-filing ke folder yang sama
+            var doc = new Document();
+            var dv = new DocVersion();
+            dv.setPathId(sord.getPath());
+            dv.setEncryptionSet(sord.getDetails().getEncryptionSet());
+            dv.setExt(ixConnectUser.getFileExt(extractedFile));
+            var dvs = java.lang.reflect.Array.newInstance(DocVersion, 1);
+            var objKeys = sord.objKeys; //set objkey
+            for (j = 0; j < objKeys.length; j++) {
+                if (row.get(j + 5).getValue() instanceof Packages.java.lang.String)
+                    if (Packages.org.apache.commons.lang3.StringUtils.isBlank(row.get(j + 5).getValue())) continue;
+                else {if (row.get(j + 5).getValue() == null) continue;}
+                objKeys[j].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+                if (j == 8) objKeys[j].data[0] = Packages.org.apache.commons.lang3.StringUtils.trimToEmpty(row.get(j + 5).getValue());
+                else if (row.get(j + 5).getValue() instanceof Packages.com.aspose.cells.DateTime) objKeys[j].data[0] = Packages.de.elo.mover.utils.ELOAsDateUtils.isoFromDate(row.get(j + 5).getValue().toDate());
+                else objKeys[j].data[0] = row.get(j + 5).getValue();
+            }
+            sord.name = Packages.org.apache.commons.lang3.StringUtils.isBlank(row.get(11).getValue()) ? row.get(10).getValue() : row.get(10).getValue() + "" + row.get(11).getValue();
+            dvs[0] = dv;
+            doc.setDocs(dvs);
+            doc = ixConnectUser.ix().checkinDocBegin(doc);
+            dv = doc.getDocs()[0];
+            var url = dv.getUrl();
+            dv.setUploadResult(ixConnectUser.upload(url, extractedFile));
+            doc = ixConnectUser.ix().checkinDocEnd(sord, SordC.mbAll, doc, LockC.NO);
+            log.info("ObjID: " + doc.getObjId());
+            //fu.deleteFile(extractedFile);
+            // put objId value
+            row.get(0).setValue(doc.getObjId()); //isi yang tadi kosong dengan objID
+        } else {
+            // TODO: Update metadata ONLY (Checkout and edit sord based on ID from col A)
+            var sord = ixConnect.ix().checkoutSord(row.get(0).getValue(), EditInfoC.mbSord, LockC.NO).sord;
+            var objKeys = sord.objKeys; //set objkey
+            for (j = 0; j < objKeys.length; j++) {
+                if (row.get(j + 5).getValue() instanceof Packages.java.lang.String)
+                    if (Packages.org.apache.commons.lang3.StringUtils.isBlank(row.get(j + 5).getValue())) continue;
+                else {if (row.get(j + 5).getValue() == null) continue;}
+                objKeys[j].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+                if (j == 8) objKeys[j].data[0] = Packages.org.apache.commons.lang3.StringUtils.trimToEmpty(row.get(j + 5).getValue());
+                else if (row.get(j + 5).getValue() instanceof Packages.com.aspose.cells.DateTime) objKeys[j].data[0] = Packages.de.elo.mover.utils.ELOAsDateUtils.isoFromDate(row.get(j + 5).getValue().toDate());
+                else objKeys[j].data[0] = row.get(j + 5).getValue();
+            }
+            sord.name = Packages.org.apache.commons.lang3.StringUtils.isBlank(row.get(11).getValue()) ? row.get(10).getValue() : row.get(10).getValue() + "" + row.get(11).getValue();
+            var newObjId = ixConnect.ix().checkinSord(sord, SordC.mbAll, LockC.NO)
+        }
+    } catch (e) {
+        log.error(e);
+    } finally {}
+}if(edited){xls.save(file, com.aspose.cells.SaveFormat.XLSX);fu.addVersion2(EM_ACT_SORD.id, file, null, null, false);EM_WF_NEXT="0"}
+}
