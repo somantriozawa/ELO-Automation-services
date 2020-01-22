@@ -1,0 +1,110 @@
+function getData(row) {
+    for (j = 2; j &lt;= 12; j += 2) { //2,4,6,8,10,12
+        var str = row.get(j).getValue();
+        if (str != null)
+            return str;
+    }
+    return null;
+}
+//doc controller &amp; others
+function patternToAcl(pattern, str) {
+    var matcher = pattern.matcher(str);
+    var userStr = "";
+    var permStr = "";
+    if (matcher.find())
+        userStr = matcher.group(1);
+    if (matcher.find())
+        permStr = matcher.group(1);
+    var aclItem = new AclItem();
+    aclItem.name = userStr;
+    aclItem.type = AclItemC.TYPE_USER;
+    aclItem.access = 0;
+    if (Packages.org.apache.commons.lang3.StringUtils.contains(permStr, "R"))
+        aclItem.access |= AccessC.LUR_READ;
+    if (Packages.org.apache.commons.lang3.StringUtils.contains(permStr, "W"))
+        aclItem.access |= AccessC.LUR_WRITE;
+    if (Packages.org.apache.commons.lang3.StringUtils.contains(permStr, "D"))
+        aclItem.access |= AccessC.LUR_DELETE;
+    if (Packages.org.apache.commons.lang3.StringUtils.contains(permStr, "E"))
+        aclItem.access |= AccessC.LUR_EDIT;
+    if (Packages.org.apache.commons.lang3.StringUtils.contains(permStr, "L"))
+        aclItem.access |= AccessC.LUR_LIST;
+    return aclItem;
+}
+//group permissions
+function columnToAcl(id, permStr) {
+    var aclItem = new AclItem();
+    aclItem.id = parseInt(id);
+    aclItem.type = AclItemC.TYPE_GROUP;
+    aclItem.access = 0;
+    if (Packages.org.apache.commons.lang3.StringUtils.contains(permStr, "R"))
+        aclItem.access |= AccessC.LUR_READ;
+    if (Packages.org.apache.commons.lang3.StringUtils.contains(permStr, "W"))
+        aclItem.access |= AccessC.LUR_WRITE;
+    if (Packages.org.apache.commons.lang3.StringUtils.contains(permStr, "D"))
+        aclItem.access |= AccessC.LUR_DELETE;
+    if (Packages.org.apache.commons.lang3.StringUtils.contains(permStr, "E"))
+        aclItem.access |= AccessC.LUR_EDIT;
+    if (Packages.org.apache.commons.lang3.StringUtils.contains(permStr, "L"))
+        aclItem.access |= AccessC.LUR_LIST;
+    return aclItem;
+}
+var pattern = java.util.regex.Pattern.compile("(?&lt;=\\[)(.*?)(?=\\])");
+var file = fu.getTempFile(5102);
+var workbook = new Packages.com.aspose.cells.Workbook(file);
+var sheet = workbook.getWorksheets().get(1);
+var cells = sheet.getCells();
+
+for (i = 7; i &lt;= cells.getMaxDataRow(); i++) {
+    var row = cells.getRows().get(i);
+    var folderId = getData(row);
+    if (folderId &amp;&amp; folderId != "") {
+        try {
+            log.info("Processing row: " + i + 1)
+            var mainFolder = ixConnect.ix().checkoutSord(String(folderId), EditInfoC.mbSord, LockC.NO).sord;
+            var fi = Packages.de.elo.mover.utils.ELOAsSearchUtils.createFindInfoByChildren(parseInt(folderId), false);
+            var folder = Packages.de.elo.mover.utils.ELOAsSearchUtils.doSearch(
+                new Packages.de.elo.mover.main.IXconnect(ixConnect), fi);
+            var splitOwner = Packages.org.apache.commons.lang3.StringUtils.split(row.get(15).getValue(), ';');  //col P
+            var splitOther = Packages.org.apache.commons.lang3.StringUtils.split(row.get(26).getValue(), ';');  //col AA
+            var splitOther2 = Packages.org.apache.commons.lang3.StringUtils.split(row.get(41).getValue(), ';'); //col AP
+            var split = Packages.org.apache.commons.lang3.ArrayUtils.addAll(splitOwner, splitOther);
+            split = Packages.org.apache.commons.lang3.ArrayUtils.addAll(split, splitOther2);
+            var userAcl = java.lang.reflect.Array.newInstance(AclItem, parseInt(split ? split.length : "0"));
+            var groupAcl = java.lang.reflect.Array.newInstance(AclItem, 23); //col R-Z &amp; AB-AO
+            var aclTKOUT = new Array();
+            for (idx = 0; idx &lt; (split ? split.length : 0); idx++) {
+                log.info("Split: " + split[idx]);
+                userAcl[idx] = patternToAcl(pattern, split[idx]);
+                var userid = Packages.de.elo.mover.utils.ELOAsUserUtils.getUserIdFromName(
+                    new Packages.de.elo.mover.main.IXconnect(ixConnect), userAcl[idx].name);
+                userAcl[idx].id = userid;
+                log.info("Owner: " + userid + " " + userAcl[idx].name);
+                if (Packages.org.apache.commons.lang3.StringUtils.contains(split[idx], "T"))
+                    aclTKOUT.push(userid);
+            }
+            for (j = 17; j &lt;= 40; j++) { //col R-AO
+                if (j == 26)
+                    continue; //skip AA
+                if (cells.get(5, j).getValue())
+                    groupAcl[j &lt; 26 ? j - 17 : j - 18] = columnToAcl(cells.get(5, j).getValue(), row.get(j).getValue());
+                var userid = Integer(cells.get(5, j).getValue());
+                if (Packages.org.apache.commons.lang3.StringUtils.contains(row.get(j).getValue(), "T"))
+                    aclTKOUT.push(userid);
+            }
+            var joinedTKOUT = Packages.org.apache.commons.lang3.StringUtils.join(aclTKOUT, ';');
+            var newAcl = Packages.org.apache.commons.lang3.ArrayUtils.addAll(userAcl, groupAcl);
+            for (j = 0; j &lt; folder.size(); j++) {
+                ix.setIndexValueByName(folder.get(j), "ACLTAKEOUT", joinedTKOUT);
+                folder.get(j).aclItems = newAcl;
+                var id = ixConnect.ix().checkinSord(folder.get(j), SordC.mbAll, LockC.NO);
+            }
+            mainFolder.aclItems = newAcl;
+            ix.setIndexValueByName(mainFolder, "ACLTAKEOUT", joinedTKOUT);
+            var outputId = ixConnect.ix().checkinSord(mainFolder, SordC.mbAll, LockC.NO);
+        } catch (e) {
+            log.error(e);
+        }
+    }
+}
+fu.deleteFile(file);
