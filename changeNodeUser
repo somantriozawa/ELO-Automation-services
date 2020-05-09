@@ -1,0 +1,40 @@
+if (EM_WF_NODE.nodeName == "CHANGE_NAME") {
+    var diag = wf.readActiveWorkflow(false);
+    var tempId = diag.templateId;
+    var nodeId = EM_WF_NODE.nodeId;
+    log.info(tempId+" - "+nodeId);
+    if (tempId == 46) {
+        var nodes = [9];
+        changeName(nodes, ix.getIndexValueByName(EM_ACT_SORD, "XL_STAKEHOLDERNAME"));
+        EM_WF_NEXT = "0";
+    } else if (tempId == 47 && nodeId == 17) { //NodeID = ID ELOas change_name
+        var nodes = [4];
+        changeName(nodes, ix.getIndexValueByName(EM_ACT_SORD, "XL_EXTERNALPARTYNAME"));
+        EM_WF_NEXT = "0";
+    } else if (tempId == 47 && nodeId == 18) {
+        var nodes = [11];
+        changeName(nodes, ix.getIndexValueByName(EM_ACT_SORD, "XL_STAKEHOLDERS1"));
+        EM_WF_NEXT = "0";
+    } else if (tempId == 48) {
+        var nodes = [4, 18];
+        changeName(nodes, ix.getIndexValueByName(EM_ACT_SORD, "XL_STAKEHOLDERS2"));
+        EM_WF_NEXT = "0";
+    }
+}
+
+function changeName(chgNodes, newUser) {
+    var changed = false;
+    var diag = wf.readActiveWorkflow(true);
+    var nodes = diag.getNodes();
+    for (var i = 0; i &lt; chgNodes.length; i++) {
+        var node = wf.getNodeById(diag, chgNodes[i]);
+        node.userName = newUser;
+        changed = true;
+    }
+
+    if (changed) {
+        wf.writeWorkflow(diag);
+    } else {
+        wf.unlockWorkflow(diag);
+    }
+}
