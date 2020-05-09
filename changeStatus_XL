@@ -1,0 +1,10 @@
+if(EM_WF_NODE.nodeName == "UPDATE_STATUS"){
+    var diag = wf.readActiveWorkflow(false);
+    var tempId = diag.templateId;
+    if(tempId == 46) ix.setIndexValueByName(EM_ACT_SORD, "XL_UPDATESTS", "Drafting");
+    else if(tempId == 47) ix.setIndexValueByName(EM_ACT_SORD, "XL_UPDATESTS", "Negotiation");
+    else if(tempId == 48) ix.setIndexValueByName(EM_ACT_SORD, "XL_UPDATESTS", "Approval");
+    else if(tempId == 49) ix.setIndexValueByName(EM_ACT_SORD, "XL_UPDATESTS", "Contract Repository");
+    ixConnect.ix().checkinSord(EM_ACT_SORD, new SordZ(SordC.mbObjKeys), LockC.NO);
+    EM_WF_NEXT = "0";
+}
