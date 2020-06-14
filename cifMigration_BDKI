@@ -1,0 +1,41 @@
+if (EM_WF_NODE.nodeName == "REPORT") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+    importPackage(Packages.de.elo.mover.utils);
+    var ixC = new Packages.de.elo.mover.main.IXconnect(ixConnect);
+    var template = fu.getTempFile(EM_ACT_SORD.id); // ganti dengan objId template 24677
+    var workbook = new Packages.com.aspose.cells.Workbook(template);
+    var cells = workbook.getWorksheets().get(0).getCells();
+    var edited = false;
+    for (var i = 5; i &lt; cells.getMaxDataRow(); i++) {
+        var row = cells.getRows().get(i);
+        if (row.get(4).getValue() == "0" || row.get(4).getValue() == 0 || Packages.org.apache.commons.lang3.StringUtils.isBlank(row.get(4).getStringValue())) {
+            var fi = new FindInfo();
+            var fx = new FindByIndex();
+            fx.maskId = "CIF";
+            var searchParams = java.lang.reflect.Array.newInstance(ObjKey, 3);
+            searchParams[0] = new ObjKey();
+            searchParams[0].name = "NOCIF";
+            searchParams[0].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+            searchParams[0].data[0] = row.get(0).getStringValue();
+            searchParams[1] = new ObjKey();
+            searchParams[1].name = "KDEPRODUK";
+            searchParams[1].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+            searchParams[1].data[0] = row.get(2).getStringValue();
+            searchParams[2] = new ObjKey();
+            searchParams[2].name = "STATUSDOC";
+            searchParams[2].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+            searchParams[2].data[0] = row.get(3).getValue();
+            fx.objKeys = searchParams;
+            fi.findByIndex = fx;
+            var results = Packages.de.elo.mover.utils.ELOAsSearchUtils.doSearch(ixC, fi);
+            if (results.size() &gt; 0){ row.get(4).setValue(1);edited =true;}
+        }
+    }
+    cells.get("C4").setValue(new java.util.Date());
+    if(edited){
+    workbook.save(template, com.aspose.cells.SaveFormat.XLSX);
+    fu.addVersion2(EM_ACT_SORD.id, template, null, null, false);}
+    EM_WF_NEXT = "0";
+
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+}
