@@ -1,0 +1,61 @@
+//CIF
+var result = {}
+result["success"] = false;
+if(EM_PARAM2.length == 12 &amp;&amp; (EM_PARAM2.substring(0, 1) == "S" || EM_PARAM2.substring(0, 1) == "D")){
+    var httpClient = Packages.org.apache.http.impl.client.HttpClients.createDefault();
+    var httpPost = new Packages.org.apache.http.client.methods.HttpPost("http://100.32.3.32:2813/getcif");
+    var json = produceJson(EM_PARAM2, EM_PARAM3);
+    log.info(json);
+    var strEntity = new Packages.org.apache.http.entity.StringEntity(json);
+    httpPost.setEntity(strEntity);
+    httpPost.setHeader("Accept", "application/json");
+    httpPost.setHeader("Content-type", "application/json");
+    var response = httpClient.execute(httpPost);
+    var strResp = Packages.org.apache.commons.io.IOUtils.toString(response.getEntity().getContent());
+    var resp = JSON.parse(strResp);
+    log.info(strResp);
+    if(response.getStatusLine().getStatusCode() == 200 && resp["39"] == "00"){
+        result["success"] = true;
+        result["message"] = resp["48"].substring(0,15);
+        elo.setAnswer(JSON.stringify(result))
+    } else if(response.getStatusLine().getStatusCode() == 200){
+        result["message"] = "Error code: "+resp["39"];
+    } else{
+        result["message"] = "Error: "+resp["message"];
+    }
+    elo.setAnswer(JSON.stringify(result));
+}
+else{
+    result["message"] = "Invalid Account Number";
+    elo.setAnswer(JSON.stringify(result));
+}
+
+function produceJson(accId, userId){
+    var sdfFull = new Packages.java.text.SimpleDateFormat("MMddHHmmss");
+    var sdfDate = new Packages.java.text.SimpleDateFormat("MMdd");
+    var sdfTime = new Packages.java.text.SimpleDateFormat("HHmmss");
+    var sdfYear = new Packages.java.text.SimpleDateFormat("HHmmss");
+    var curDate = new Packages.java.util.Date();
+    var json = {};
+    json[0] = "0200";
+    json[2] = "00000000000000";
+    json[3] = "740009";
+    json[7] = ""+sdfFull.format(curDate);
+    json[11] = String(getRandomInt(100000, 1000000));
+    json[12] = ""+sdfTime.format(curDate);
+    json[13] = ""+sdfDate.format(curDate);
+    json[18] = "6099";
+    json[32] = "100700";
+    json[33] = "100700";
+    json[37] = String(getRandomInt(100000000000, 1000000000000));
+    json[41] = userId.substring(2);
+    json[62] = ""+sdfYear.format(curDate);
+    json[120] = accId;
+    return JSON.stringify(json);
+}
+
+function getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
+  }
