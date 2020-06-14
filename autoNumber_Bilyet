@@ -1,0 +1,36 @@
+EM_FOLDERMASK = 1;
+
+if (EM_WF_NODE.nodeName == "Generate_Number") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+
+    var numeralCodes = [["","I","II","III","IV","V","VI","VII","VIII","IX"],         // Ones
+                      ["","X","XX","XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"],   // Tens
+                      ["","C","CC","CCC","CD","D","DC","DCC","DCCC","CM"]];        // Hundreds
+
+    function convert(num) {
+        var numeral = "";
+        var digits = num.toString().split('').reverse();
+        for (var i=0; i &lt; digits.length; i++){
+            numeral = numeralCodes[i][parseInt(digits[i])] + numeral;
+        }
+        return numeral;
+    }
+    var res = db.getLine(1, "SELECT * FROM BankDKI.dbo.autonumbering WHERE kwf='Bilyet Giro' AND jenis='" + KDEKNTRLAYANAN + "'");
+    if(String(res["tahun"]) != String(Calendar.getInstance().get(Calendar.YEAR)) || parseInt(res["nomor"]) &gt; 9999){
+  	    db.doUpdate(1, "UPDATE BankDKI.dbo.autonumbering SET tahun="+Calendar.getInstance().get(Calendar.YEAR)+", nomor=1 WHERE kwf='Bilyet Giro' AND jenis='" + KDEKNTRLAYANAN + "'");
+  	    var res = db.getLine(1, "SELECT * FROM BankDKI.dbo.autonumbering WHERE kwf='Bilyet Giro' AND jenis='" + KDEKNTRLAYANAN + "'");
+    } else {
+  	    var newnomor = parseInt(res["nomor"])+1;
+  	    db.doUpdate(1, "UPDATE BankDKI.dbo.autonumbering SET nomor="+newnomor+" WHERE kwf='Bilyet Giro' AND jenis='" + KDEKNTRLAYANAN + "'");
+    }
+    
+    var answer = "";
+    answer = String(Packages.org.apache.commons.lang3.StringUtils.leftPad(res["nomor"],3,"0")+"/"+res["initial"]+"/CS/"+convert(Calendar.getInstance().get(Calendar.MONTH)+1)+"/"+String(Calendar.getInstance().get(Calendar.YEAR)))
+    var sordNomor = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO).getSord();
+    ix.setIndexValueByName(sordNomor, "NOREQBILYETGIRO", answer);
+    sordNomor.name = answer;
+    var checkInNomor = ixConnect.ix().checkinSord(sordNomor, SordC.mbAllIndex, LockC.NO);
+
+    EM_WF_NEXT = "0";
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+}
