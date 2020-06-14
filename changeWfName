@@ -1,0 +1,11 @@
+if (EM_WF_NODE.nodeName == "UPDATE_WFNAME") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");   
+    
+    var diag = wf.readActiveWorkflow(false);
+    diag.name = ix.getIndexValueByName(EM_ACT_SORD, "PERIHAL");
+    wf.writeWorkflow(diag);
+    
+    EM_WF_NEXT = "0";
+    
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+}
