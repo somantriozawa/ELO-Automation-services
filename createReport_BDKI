@@ -1,0 +1,352 @@
+EM_FOLDERMASK = 1;
+
+if (EM_WF_NODE.nodeName == "REPORT") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+
+    importPackage(Packages.de.elo.mover.utils);
+    if (REPORTTYPE == "CIF Upload") {
+        ACL = "PARENT";
+        bt.moveTo(Sord, "¶GOP¶DSO¶SENTRAL CIF¶REPORTING¶CIF Upload");
+        if (Packages.org.apache.commons.lang3.StringUtils.isNoneBlank(DATESTART, DATEFINISH)) {
+            var ixC = new Packages.de.elo.mover.main.IXconnect(ixConnect);
+            var template = fu.getTempFile(1425); // ganti dengan objId template
+            var workbook = new Packages.com.aspose.cells.Workbook(template);
+            var cells = workbook.getWorksheets().get(0).getCells();
+            var curRow = 6;
+            //Pake date
+            var fi = new FindInfo();
+            var fx = new FindByIndex();
+            fx.maskId = "CIF";
+            var fo = new FindOptions();
+            fx.IDateIso = DATESTART + "..." + DATEFINISH;
+            fi.findOptions = fo;
+            fi.findByIndex = fx;
+            fo.totalCount = 1048550; //max excel rows
+            var idx = 0;
+            var findResult = ixConnect.ix().findFirstSords(fi, 1000, SordC.mbLean);
+            do {
+                // Display find results
+                System.out.println("Found " + findResult.getSords().length + " results");
+                for (var i = 0; i &lt; findResult.getSords().length; i++) {
+                    var curSord = findResult.getSords()[i];
+                    if(ix.getIndexValueByName(curSord, "STATUSDOC") == "REJECT") continue;
+                    var row = cells.getRows().get(curRow);
+                    row.get(0).setValue(ix.getIndexValueByName(curSord, "NOCIF"));
+                    row.get(1).setValue(ix.getIndexValueByName(curSord, "KDEPRODUK"));
+                    row.get(2).setValue(ELOAsDateUtils.dateFromIso(curSord.IDateIso));
+                    row.get(3).setValue(ix.getIndexValueByName(curSord, "STATUSDOC"));
+                    row.get(4).setValue(curSord.ownerName);
+                    curRow++;
+                }
+                // More results?
+                if (!findResult.isMoreResults()) {
+                    break;
+                }
+
+                //Next results
+                idx += findResult.getSords().length;
+                findResult = ixConnect.ix().findNextSords(findResult.getSearchId(), idx, 1000, SordC.mbLean);
+
+            } while (true);
+            // Release find result buffer in Index Server
+            ixConnect.ix().findClose(findResult.getSearchId());
+
+            cells.get("C5").setValue(ELOAsDateUtils.getToday());
+            var pattern = "dd/MM/yyyy";
+            var simpleDateFormat = new Packages.java.text.SimpleDateFormat(pattern);
+            var dateStart = simpleDateFormat.format(ELOAsDateUtils.dateFromIso(DATESTART));
+            var dateFinish = simpleDateFormat.format(ELOAsDateUtils.dateFromIso(DATEFINISH));
+            cells.get("A3").setValue("Periode: "+dateStart+" - "+dateFinish);
+
+            workbook.save(template, Packages.com.aspose.cells.SaveFormat.PDF);
+            var outputFile = new File("report.pdf");
+            template.renameTo(outputFile);
+            fu.deleteFile(template);
+            template = outputFile;
+            var sord = ixConnect.ix().createDoc(String(EM_ACT_SORD.id), "Basic Entry", null, ixConnect.getCONST().EDIT_INFO.mbSordDocAtt).getSord();
+            sord.setName("Report");
+            var doc = new Document();
+            var dv = new DocVersion();
+            dv.setPathId(sord.getPath());
+            dv.setEncryptionSet(sord.getDetails().getEncryptionSet());
+            dv.setExt(ixConnect.getFileExt(template));
+            var dvs = java.lang.reflect.Array.newInstance(DocVersion, 1);
+            dvs[0] = dv;
+            doc.setDocs(dvs);
+            doc = ixConnect.ix().checkinDocBegin(doc);
+            dv = doc.getDocs()[0];
+            var url = dv.getUrl();
+            dv.setUploadResult(ixConnect.upload(url, template));
+            doc = ixConnect.ix().checkinDocEnd(sord, SordC.mbAll, doc, LockC.NO);
+            log.info("ObjID: " + doc.getObjId());
+            fu.deleteFile(template);
+            EM_WF_NEXT = "0";
+        } else {
+            var ixC = new Packages.de.elo.mover.main.IXconnect(ixConnect);
+            var template = fu.getTempFile(1425); // ganti dengan objId template
+            var workbook = new Packages.com.aspose.cells.Workbook(template);
+            var cells = workbook.getWorksheets().get(0).getCells();
+            var curRow = 6;
+            //Pake date
+            var fi = new FindInfo();
+            var fx = new FindByIndex();
+            fx.maskId = "CIF";
+            var fo = new FindOptions();
+            fi.findOptions = fo;
+            fi.findByIndex = fx;
+            fo.totalCount = 1048550; //max excel rows
+            var idx = 0;
+            var findResult = ixConnect.ix().findFirstSords(fi, 1000, SordC.mbLean);
+            do {
+                // Display find results
+                System.out.println("Found " + findResult.getSords().length + " results");
+                for (var i = 0; i &lt; findResult.getSords().length; i++) {
+                    var curSord = findResult.getSords()[i];
+                    if(ix.getIndexValueByName(curSord, "STATUSDOC") == "REJECT") continue;
+                    var row = cells.getRows().get(curRow);
+                    row.get(0).setValue(ix.getIndexValueByName(curSord, "NOCIF"));
+                    row.get(1).setValue(ix.getIndexValueByName(curSord, "KDEPRODUK"));
+                    row.get(2).setValue(ELOAsDateUtils.dateFromIso(curSord.IDateIso));
+                    row.get(3).setValue(ix.getIndexValueByName(curSord, "STATUSDOC"));
+                    row.get(4).setValue(curSord.ownerName);
+                    curRow++;
+                }
+                // More results?
+                if (!findResult.isMoreResults()) {
+                    break;
+                }
+
+                //Next results
+                idx += findResult.getSords().length;
+                findResult = ixConnect.ix().findNextSords(findResult.getSearchId(), idx, 1000, SordC.mbLean);
+
+            } while (true);
+            // Release find result buffer in Index Server
+            ixConnect.ix().findClose(findResult.getSearchId());
+
+            cells.get("C5").setValue(ELOAsDateUtils.getToday());
+            cells.get("A3").setValue("Semua Dokumen");
+
+            workbook.save(template, Packages.com.aspose.cells.SaveFormat.PDF);
+            var outputFile = new File("report.pdf");
+            template.renameTo(outputFile);
+            fu.deleteFile(template);
+            template = outputFile;
+            var sord = ixConnect.ix().createDoc(String(EM_ACT_SORD.id), "Basic Entry", null, ixConnect.getCONST().EDIT_INFO.mbSordDocAtt).getSord();
+            sord.setName("Report");
+            var doc = new Document();
+            var dv = new DocVersion();
+            dv.setPathId(sord.getPath());
+            dv.setEncryptionSet(sord.getDetails().getEncryptionSet());
+            dv.setExt(ixConnect.getFileExt(template));
+            var dvs = java.lang.reflect.Array.newInstance(DocVersion, 1);
+            dvs[0] = dv;
+            doc.setDocs(dvs);
+            doc = ixConnect.ix().checkinDocBegin(doc);
+            dv = doc.getDocs()[0];
+            var url = dv.getUrl();
+            dv.setUploadResult(ixConnect.upload(url, template));
+            doc = ixConnect.ix().checkinDocEnd(sord, SordC.mbAll, doc, LockC.NO);
+            log.info("ObjID: " + doc.getObjId());
+            fu.deleteFile(template);
+            EM_WF_NEXT = "0";
+        }
+        
+        log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+    } else if (REPORTTYPE == "CIF Click") {
+        log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+        
+        ACL = "PARENT";
+        bt.moveTo(Sord, "¶GOP¶DSO¶SENTRAL CIF¶REPORTING¶CIF Click");
+
+        if (Packages.org.apache.commons.lang3.StringUtils.isNoneBlank(DATESTART, DATEFINISH)) {
+            var ixC = new Packages.de.elo.mover.main.IXconnect(ixConnect);
+            var template = fu.getTempFile(1426); // ganti dengan objId template 1426
+            var workbook = new Packages.com.aspose.cells.Workbook(template);
+            var cells = workbook.getWorksheets().get(0).getCells();
+            var curRow = 6;
+            //Pake date
+            var fi = new FindInfo();
+            var fx = new FindByIndex();
+            fx.maskId = "CIF";
+            var fo = new FindOptions();
+            fi.findOptions = fo;
+            fi.findByIndex = fx;
+            fo.totalCount = 1048550; //max excel rows
+            var idx = 0;
+            var findResult = ixConnect.ix().findFirstSords(fi, 1000, SordC.mbLean);
+            do {
+                // Display find results
+                System.out.println("Found " + findResult.getSords().length + " results");
+                for (var i = 0; i &lt; findResult.getSords().length; i++) {
+                    var curSord = findResult.getSords()[i];
+                    var fi = new FindReportInfo();
+                    fi.erpCodes = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, 1);
+                    fi.erpCodes[0] = ReportOptionsC.ERP_DM_READDOC;
+                    fi.objId = String(curSord.id);
+                    fi.startDateIso = ELOAsDateUtils.isoFromDate(ELOAsDateUtils.getEdgeOfDay(ELOAsDateUtils.dateFromIso(DATESTART), false));
+                    fi.endDateIso = ELOAsDateUtils.isoFromDate(ELOAsDateUtils.getEdgeOfDay(ELOAsDateUtils.dateFromIso(DATEFINISH), true));
+                    fi.totalCount = 1048550;
+                    var idx2 = 0;
+                    var findResult2 = ixConnect.ix().findFirstReportInfos(fi, 1000);
+                    do {
+                        for (var j = 0; j &lt; findResult2.getReportInfos().length; j++) {
+                            var curReport = findResult2.getReportInfos()[j];
+                            if(curReport.userId == 1) continue;
+                            var curSord = ixConnect.ix().checkoutSord(String(curReport.objId), new SordZ(SordC.mbObjKeys), LockC.NO);
+                            var row = cells.getRows().get(curRow);
+                            row.get(0).setValue(ix.getIndexValueByName(curSord, "NOCIF"));
+                            row.get(1).setValue(ix.getIndexValueByName(curSord, "KDEPRODUK"));
+                            row.get(2).setValue(ELOAsDateUtils.dateFromIso(curReport.actTimeISO));
+                            row.get(3).setValue(ix.getIndexValueByName(curSord, "STATUSDOC"));
+                            row.get(4).setValue(curReport.userName);
+                            curRow++;
+                        }
+                        // More results?
+                        if (!findResult2.isMoreResults()) {
+                            break;
+                        }
+
+                        //Next results
+                        idx2 += findResult2.getReportInfos().length;
+                        findResult2 = ixConnect.ix().findNextReportInfos(findResult2.getSearchId(), idx2, 1000);
+
+                    } while (true);
+                    // Release find result buffer in Index Server
+                    ixConnect.ix().findClose(findResult2.getSearchId());
+                }
+                // More results?
+                if (!findResult.isMoreResults()) {
+                    break;
+                }
+                //Next results
+                idx += findResult.getSords().length;
+                findResult = ixConnect.ix().findNextSords(findResult.getSearchId(), idx, 1000, SordC.mbLean);
+            } while (true);
+            ixConnect.ix().findClose(findResult.getSearchId());
+
+            cells.get("C5").setValue(ELOAsDateUtils.getToday());
+            var pattern = "dd/MM/yyyy";
+            var simpleDateFormat = new Packages.java.text.SimpleDateFormat(pattern);
+            var dateStart = simpleDateFormat.format(ELOAsDateUtils.dateFromIso(DATESTART));
+            var dateFinish = simpleDateFormat.format(ELOAsDateUtils.dateFromIso(DATEFINISH));
+            cells.get("A3").setValue("Periode: " + dateStart + " - " + dateFinish);
+
+            workbook.save(template, Packages.com.aspose.cells.SaveFormat.PDF);
+            var outputFile = new File("report.pdf");
+            template.renameTo(outputFile);
+            fu.deleteFile(template);
+            template = outputFile;
+            var sord = ixConnect.ix().createDoc(String(EM_ACT_SORD.id), "Basic Entry", null, ixConnect.getCONST().EDIT_INFO.mbSordDocAtt).getSord();
+            sord.setName("Report");
+            var doc = new Document();
+            var dv = new DocVersion();
+            dv.setPathId(sord.getPath());
+            dv.setEncryptionSet(sord.getDetails().getEncryptionSet());
+            dv.setExt(ixConnect.getFileExt(template));
+            var dvs = java.lang.reflect.Array.newInstance(DocVersion, 1);
+            dvs[0] = dv;
+            doc.setDocs(dvs);
+            doc = ixConnect.ix().checkinDocBegin(doc);
+            dv = doc.getDocs()[0];
+            var url = dv.getUrl();
+            dv.setUploadResult(ixConnect.upload(url, template));
+            doc = ixConnect.ix().checkinDocEnd(sord, SordC.mbAll, doc, LockC.NO);
+            log.info("ObjID: " + doc.getObjId());
+            fu.deleteFile(template);
+            EM_WF_NEXT = "0";
+        } else {
+            var ixC = new Packages.de.elo.mover.main.IXconnect(ixConnect);
+            var template = fu.getTempFile(1426); // ganti dengan objId template
+            var workbook = new Packages.com.aspose.cells.Workbook(template);
+            var cells = workbook.getWorksheets().get(0).getCells();
+            var curRow = 6;
+            //Pake date
+            var fi = new FindInfo();
+            var fx = new FindByIndex();
+            fx.maskId = "CIF";
+            var fo = new FindOptions();
+            fi.findOptions = fo;
+            fi.findByIndex = fx;
+            fo.totalCount = 1048550; //max excel rows
+            var idx = 0;
+            var findResult = ixConnect.ix().findFirstSords(fi, 1000, SordC.mbLean);
+            do {
+                // Display find results
+                System.out.println("Found " + findResult.getSords().length + " results");
+                for (var i = 0; i &lt; findResult.getSords().length; i++) {
+                    var curSord = findResult.getSords()[i];
+                    var fi = new FindReportInfo();
+                    fi.erpCodes = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, 1);
+                    fi.erpCodes[0] = ReportOptionsC.ERP_DM_READDOC;
+                    fi.objId = String(curSord.id);
+                    fi.totalCount = 1048550;
+                    var idx2 = 0;
+                    var findResult2 = ixConnect.ix().findFirstReportInfos(fi, 1000);
+                    do {
+                        for (var j = 0; j &lt; findResult2.getReportInfos().length; j++) {
+                            var curReport = findResult2.getReportInfos()[j];
+                            if(curReport.userId == 1) continue;
+                            var curSord = ixConnect.ix().checkoutSord(String(curReport.objId), new SordZ(SordC.mbObjKeys), LockC.NO);
+                            var row = cells.getRows().get(curRow);
+                            row.get(0).setValue(ix.getIndexValueByName(curSord, "NOCIF"));
+                            row.get(1).setValue(ix.getIndexValueByName(curSord, "KDEPRODUK"));
+                            row.get(2).setValue(ELOAsDateUtils.dateFromIso(curReport.actTimeISO));
+                            row.get(3).setValue(ix.getIndexValueByName(curSord, "STATUSDOC"));
+                            row.get(4).setValue(curReport.userName);
+                            curRow++;
+                        }
+                        // More results?
+                        if (!findResult2.isMoreResults()) {
+                            break;
+                        }
+
+                        //Next results
+                        idx2 += findResult2.getReportInfos().length;
+                        findResult2 = ixConnect.ix().findNextReportInfos(findResult2.getSearchId(), idx2, 1000);
+
+                    } while (true);
+                    // Release find result buffer in Index Server
+                    ixConnect.ix().findClose(findResult2.getSearchId());
+                }
+                // More results?
+                if (!findResult.isMoreResults()) {
+                    break;
+                }
+                //Next results
+                idx += findResult.getSords().length;
+                findResult = ixConnect.ix().findNextSords(findResult.getSearchId(), idx, 1000, SordC.mbLean);
+            } while (true);
+            ixConnect.ix().findClose(findResult.getSearchId());
+
+            cells.get("C5").setValue(ELOAsDateUtils.getToday());
+            cells.get("A3").setValue("Semua Dokumen");
+
+            workbook.save(template, Packages.com.aspose.cells.SaveFormat.PDF);
+            var outputFile = new File("report.pdf");
+            template.renameTo(outputFile);
+            fu.deleteFile(template);
+            template = outputFile;
+            var sord = ixConnect.ix().createDoc(String(EM_ACT_SORD.id), "Basic Entry", null, ixConnect.getCONST().EDIT_INFO.mbSordDocAtt).getSord();
+            sord.setName("Report");
+            var doc = new Document();
+            var dv = new DocVersion();
+            dv.setPathId(sord.getPath());
+            dv.setEncryptionSet(sord.getDetails().getEncryptionSet());
+            dv.setExt(ixConnect.getFileExt(template));
+            var dvs = java.lang.reflect.Array.newInstance(DocVersion, 1);
+            dvs[0] = dv;
+            doc.setDocs(dvs);
+            doc = ixConnect.ix().checkinDocBegin(doc);
+            dv = doc.getDocs()[0];
+            var url = dv.getUrl();
+            dv.setUploadResult(ixConnect.upload(url, template));
+            doc = ixConnect.ix().checkinDocEnd(sord, SordC.mbAll, doc, LockC.NO);
+            log.info("ObjID: " + doc.getObjId());
+            fu.deleteFile(template);
+            EM_WF_NEXT = "0";
+        }
+
+        log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+    }
+}
