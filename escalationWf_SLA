@@ -20,6 +20,61 @@ if(EM_WF_NODE.nodeName == "SLA"){
 
     log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
 }
+
+if(EM_WF_NODE.nodeName == "SLA"){
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+
+    var nodeIds = [];
+    var mapIds = [];
+    if(FASILITAS == "Create Rekening"){
+        nodeIds = [18, 19];
+        mapIds = ["BOOKING", "CREATEREKENING"];
+    } else if(FASILITAS == "Create Rekening, Cetak Buku Tabungan"){
+        nodeIds = [18, 19, 20];
+        mapIds = ["BOOKING", "CREATEREKENING", "CETAKBUKU"];
+    } else if(FASILITAS == "Create Rekening, Cetak Buku Tabungan &amp; Create CIF"){
+        nodeIds = [18, 19, 35, 22];
+        mapIds = ["BOOKING", "CREATEREKENING", "CETAKBUKU", "CETAKCIF"];
+    } else if(FASILITAS == "Create Rekening, Cetak Kartu ATM &amp; PIN Mailer"){
+        nodeIds = [18, 19, 21, 23];
+        mapIds = ["BOOKING", "CREATEREKENING", "GENERATEATM", "CETAKPIN"];
+    } else if(FASILITAS == "Create Rekening, Cetak Buku Tabungan &amp; Kartu ATM dan PIN Mailer"){
+        nodeIds = [18, 19, 39, 47, 48];
+        mapIds = ["BOOKING", "CREATEREKENING", "CETAKBUKU", "GENERATEATM", "CETAKPIN"];
+    } else if(FASILITAS == "Create Rekening, Cetak Buku Tabungan, Create CIF &amp; Kartu ATM dan PIN Mailer"){
+        nodeIds = [18, 19, 52, 59, 54, 55];
+        mapIds = ["BOOKING", "CREATEREKENING", "CETAKBUKU", "CETAKCIF", "GENERATEATM", "CETAKPIN"];
+    } else if(FASILITAS == "Create Rekening, Cetak Buku Tabungan, Create CIF, Kartu ATM dan PIN Mailer serta Distribusi"){
+        nodeIds = [18, 19, 61, 68, 63, 64, 24];
+        mapIds = ["BOOKING", "CREATEREKENING", "CETAKBUKU", "CETAKCIF", "GENERATEATM", "CETAKPIN", "PACKAGING"];
+    }
+    var mapData = ixConnect.ix().checkoutMap(MapDomainC.DOMAIN_SORD, String(EM_ACT_SORD.id), null, LockC.NO);
+    var wfAct = wf.readActiveWorkflow(false);
+    var totalDays = 0;
+    for(var i=0;i&lt;nodeIds.length;i++){
+        var curNode = wf.getNodeById(wfAct, nodeIds[i]);
+        var timeLimit = mapData.mapItems.get(mapIds[i]).getValue();
+        var escalate = java.lang.reflect.Array.newInstance(WFTimeLimit, 2);
+        escalate[0] = new WFTimeLimit();
+        escalate[0].timeLimit = Math.ceil(Number(timeLimit)) * 1440;
+        escalate[0].userName = "Escalation Dept. Rekening Massal";
+        totalDays += Math.ceil(Number(timeLimit));
+        escalate[1] = new WFTimeLimit();
+        curNode.timeLimitEscalations = escalate;
+    }
+    ixConnect.ix().checkinWorkFlow(wfAct, WFDiagramC.mbAll, LockC.NO);
+    DATEDUE = calcLocal(totalDays);
+    EM_WRITE_CHANGED = true;
+    EM_WF_NEXT = "0";
+    
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+}
+
+function isoToLocal(iso){
+    var formatter = Packages.java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd");
+    return Packages.java.time.LocalDate.parse(iso, formatter);
+}
+
 function localToIso(local){
     var formatter = Packages.java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd");
     return formatter.format(local);
