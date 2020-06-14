@@ -1,0 +1,195 @@
+//EM_SYS_SELECTOR = SordC.mbAllIndex;
+
+EM_FOLDERMASK = 1;
+//Index line changes
+
+function searchSords(maskId, objKeys) {
+    var findInfo = new FindInfo();
+    var findByIndex = new FindByIndex();
+    if (maskId != "") {
+        findByIndex.maskId = maskId;
+    }
+    findByIndex.setObjKeys(objKeys);
+    findInfo.setFindByIndex(findByIndex);
+    var findResult = ixConnect.ix().findFirstSords(findInfo, 1000, SordC.mbAllIndex);
+    ixConnect.ix().findClose(findResult.getSearchId());
+    return findResult.sords;
+}
+
+if (EM_WF_NODE.nodeName == "CHANGE_SHORTNAME") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+    var curSord = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO).sord;
+
+    NAME=NOCIF + " - " + KDECABANG + " - " + curSord.docVersion.createDateIso.substr(0,8);
+    EM_WRITE_CHANGED = true;
+    EM_WF_NEXT = "0";
+
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+} else if (EM_WF_NODE.nodeName == "MOVE_PUBLIC") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+
+    // check existing CIF Public
+    let searchParams = java.lang.reflect.Array.newInstance(ObjKey, 3); //sesuaikan (2) dgn di bawah
+    searchParams[0] = new ObjKey();
+    searchParams[0].name = "NOCIF";
+    searchParams[0].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[0].data[0] = NOCIF;
+    searchParams[1] = new ObjKey();
+    searchParams[1].name = "STATUSDOC";
+    searchParams[1].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[1].data[0] = "PUBLIC";
+    searchParams[2] = new ObjKey();
+    searchParams[2].name = "JNSNASABAH";
+    searchParams[2].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[2].data[0] = JNSNASABAH;
+
+    var result = searchSords("CIF", searchParams);
+    for(i=0;i&lt;result.length;i++){
+        var destId = ix.createSubPath(1, "¶GOP¶DSO¶SENTRAL CIF¶BACKUP¶" + NOCIF + "¶" + JNSNASABAH + "¶" + KDECABANG + "¶PUBLIC", 1);
+        ixConnect.ix().copySord(destId, result[i].id, null, CopySordC.MOVE);
+        ix.setIndexValueByName(result[i], "STATUSDOC", "BACKUP");
+        var sordZ = new SordZ();
+        sordZ.add(SordC.mbObjKeys);
+        sordZ.add(SordC.mbAclItems);
+        result[i].aclItems = ixConnect.ix().checkoutSord("ARCPATH:¶GOP¶DSO¶SENTRAL CIF¶BACKUP", sordZ, LockC.NO).aclItems;
+        ixConnect.ix().checkinSord(result[i], sordZ, LockC.NO);
+    }
+
+    STATUSDOC = "PUBLIC"
+    EM_WRITE_CHANGED = true;
+    //moved
+    ACL = "PARENT";
+    bt.moveTo(Sord, "¶GOP¶DSO¶SENTRAL CIF¶OPERASIONAL¶" + NOCIF + "¶" + JNSNASABAH + "¶" + KDECABANG + "¶PUBLIC");
+
+    EM_WF_NEXT = "0";
+
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+} else if (EM_WF_NODE.nodeName == "MOVE_PRIVATE") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+
+    // check existing CIF Private
+    let searchParams = java.lang.reflect.Array.newInstance(ObjKey, 3); //sesuaikan (2) dgn di bawah
+    searchParams[0] = new ObjKey();
+    searchParams[0].name = "NOCIF";
+    searchParams[0].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[0].data[0] = NOCIF;
+    searchParams[1] = new ObjKey();
+    searchParams[1].name = "STATUSDOC";
+    searchParams[1].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[1].data[0] = "PRIVATE";
+    searchParams[2] = new ObjKey();
+    searchParams[2].name = "JNSNASABAH";
+    searchParams[2].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[2].data[0] = JNSNASABAH;
+    
+    // Step 2
+    var result = searchSords("CIF", searchParams);
+    var curWf = wf.readActiveWorkflow(false);
+    for(i=0;i&lt;result.length;i++){
+        var destId = ix.createSubPath(1, "¶GOP¶DSO¶SENTRAL CIF¶BACKUP¶" + NOCIF + "¶" + JNSNASABAH + "¶" + KDECABANG + "¶PRIVATE", 1);
+        ixConnect.ix().copySord(destId, result[i].id, null, CopySordC.MOVE);
+        ix.setIndexValueByName(result[i], "STATUSDOC", "BACKUP");
+        var sordZ = new SordZ();
+        sordZ.add(SordC.mbObjKeys);
+        sordZ.add(SordC.mbAclItems);
+        result[i].aclItems = ixConnect.ix().checkoutSord("ARCPATH:¶GOP¶DSO¶SENTRAL CIF¶BACKUP", sordZ, LockC.NO).aclItems;
+        ixConnect.ix().checkinSord(result[i], sordZ, LockC.NO);
+    }
+
+    var destId = ix.createSubPath(1, "¶GOP¶DSO¶SENTRAL CIF¶OPERASIONAL¶" + NOCIF + "¶" + JNSNASABAH + "¶" + KDECABANG + "¶PRIVATE", 1);
+    ixConnect.ix().copySord(destId, EM_ACT_SORD.id, null, CopySordC.MOVE);
+    var newAcl = java.lang.reflect.Array.newInstance(AclItem, 3);
+    newAcl[0] = new AclItem();
+    newAcl[0].id = 31;
+    newAcl[0].name = "Admin DSO";
+    newAcl[0].type = AclItemC.TYPE_GROUP;
+    newAcl[0].access = AccessC.LUR_ALL;
+    newAcl[1] = new AclItem();
+    newAcl[1].id = 30;
+    newAcl[1].name = "System_Admin";
+    newAcl[1].type = AclItemC.TYPE_GROUP;
+    newAcl[1].access = AccessC.LUR_ALL;
+    newAcl[2] = new AclItem();
+    newAcl[2].id = 19;
+    newAcl[2].name = "CIF Group";
+    newAcl[2].type = AclItemC.TYPE_GROUP;
+    newAcl[2].access = AccessC.LUR_READ | AccessC.LUR_WRITE | AccessC.LUR_EDIT | AccessC.LUR_LIST;
+    EM_ACT_SORD.aclItems = newAcl;
+    ix.setIndexValueByName(EM_ACT_SORD, "STATUSDOC", "PRIVATE");
+    log.info(EM_ACT_SORD.aclItems[0]);
+    var sordZ = new SordZ(SordC.mbAclItems | SordC.mbObjKeys);
+    sordZ.add(SordC.mbAclItems);
+    sordZ.add(SordC.mbObjKeys);
+    log.info(sordZ);
+    log.info(sordZ.bset);
+    ixConnect.ix().checkinSord(EM_ACT_SORD, sordZ, LockC.NO);
+    
+    EM_WF_NEXT = "0";
+
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+} else if (EM_WF_NODE.nodeName == "MOVE_REJECT") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+
+    // Change Mask
+    //ix.setIndexValueByName(EM_ACT_SORD, "STATUSDOC", "REJECT"); 
+        STATUSDOC = "REJECT";
+        EM_WRITE_CHANGED = true;
+    //moved
+    ACL = "PARENT";
+    bt.moveTo(Sord, "¶GOP¶DSO¶SENTRAL CIF¶REJECT¶" + NOCIF + "¶" + JNSNASABAH + "¶" + KDECABANG);
+    EM_WF_NEXT = "0";
+
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+}  else if (EM_WF_NODE.nodeName == "CHECK_PRIVATE_CIF") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+
+    // check existing CIF Private
+    let searchParams = java.lang.reflect.Array.newInstance(ObjKey, 3); //sesuaikan (2) dgn di bawah
+    searchParams[0] = new ObjKey();
+    searchParams[0].name = "NOCIF";
+    searchParams[0].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[0].data[0] = NOCIF;
+    searchParams[1] = new ObjKey();
+    searchParams[1].name = "STATUSDOC";
+    searchParams[1].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[1].data[0] = "PRIVATE";
+    searchParams[2] = new ObjKey();
+    searchParams[2].name = "JNSNASABAH";
+    searchParams[2].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[2].data[0] = JNSNASABAH;
+    
+    // Step 2
+    var result = searchSords("CIF", searchParams);
+    log.info(result.length);
+    if(result.length &gt; 0){
+        EXISTING_PRIVATE = "TRUE";
+        EM_WRITE_CHANGED = true;
+    }
+    EM_WF_NEXT = "0";
+}  else if (EM_WF_NODE.nodeName == "CHECK_PUBLIC_CIF") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+
+    // check existing CIF Private
+    let searchParams = java.lang.reflect.Array.newInstance(ObjKey, 3); //sesuaikan (2) dgn di bawah
+    searchParams[0] = new ObjKey();
+    searchParams[0].name = "NOCIF";
+    searchParams[0].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[0].data[0] = NOCIF;
+    searchParams[1] = new ObjKey();
+    searchParams[1].name = "STATUSDOC";
+    searchParams[1].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[1].data[0] = "PUBLIC";
+    searchParams[2] = new ObjKey();
+    searchParams[2].name = "JNSNASABAH";
+    searchParams[2].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[2].data[0] = JNSNASABAH;
+    
+    // Step 2
+    var result = searchSords("CIF", searchParams);
+    log.info(result.length);
+    if(result.length &gt; 0){
+        EXISTING_PUBLIC = "TRUE";
+        EM_WRITE_CHANGED = true;
+    }
+    EM_WF_NEXT = "0";
+}
