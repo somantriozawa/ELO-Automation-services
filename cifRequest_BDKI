@@ -1,0 +1,73 @@
+EM_FOLDERMASK = 1;
+//maskId is mask id, objKeys is ObjKey[]
+function searchSords(maskId, objKeys) {
+    var findInfo = new FindInfo();
+    var findByIndex = new FindByIndex();
+    if (maskId != "") {
+        findByIndex.maskId = maskId;
+    }
+    findByIndex.setObjKeys(objKeys);
+    findInfo.setFindByIndex(findByIndex);
+    var findResult = ixConnect.ix().findFirstSords(findInfo, 1000, SordC.mbAllIndex);
+    ixConnect.ix().findClose(findResult.getSearchId());
+    return findResult.sords;
+}
+
+if (EM_WF_NODE.nodeName == "OPEN_ACL") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName);
+    // Step 1
+    let searchParams = java.lang.reflect.Array.newInstance(ObjKey, 2); //sesuaikan (2) dgn di bawah
+    searchParams[0] = new ObjKey();
+    searchParams[0].name = "NOCIF";
+    searchParams[0].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[0].data[0] = NOCIF;
+    searchParams[1] = new ObjKey();
+    searchParams[1].name = "STATUSDOC";
+    searchParams[1].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[1].data[0] = "PRIVATE";
+    // Step 2
+    var result = searchSords("CIF", searchParams);
+    var curWf = wf.readActiveWorkflow(false);
+    for (i = 0; i &lt; result.length; i++) {
+        var curSord = result[i];
+        var newAcl = new AclItem();
+        newAcl.id = curWf.ownerId;
+        newAcl.name = curWf.ownerName;
+        newAcl.type = AclItemC.TYPE_USER;
+        newAcl.access = AccessC.LUR_READ;
+        curSord.aclItems = Packages.org.apache.commons.lang3.ArrayUtils.add(curSord.aclItems, newAcl);
+        ixConnect.ix().checkinSord(curSord, new SordZ(SordC.mbAclItems), LockC.NO);
+    }
+    EM_WF_NEXT = "0";
+
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+} else if (EM_WF_NODE.nodeName == "CLOSE_ACL") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName);
+    
+    let searchParams = java.lang.reflect.Array.newInstance(ObjKey, 2); //sesuaikan (2) dgn di bawah
+    searchParams[0] = new ObjKey();
+    searchParams[0].name = "NOCIF";
+    searchParams[0].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[0].data[0] = NOCIF;
+    searchParams[1] = new ObjKey();
+    searchParams[1].name = "STATUSDOC";
+    searchParams[1].data = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    searchParams[1].data[0] = "PRIVATE";     
+    // Step 2
+    var result = searchSords("CIF", searchParams);
+    var curWf = wf.readActiveWorkflow(false);
+    for (i = 0; i &lt; result.length; i++) {
+        var curSord = result[i];
+        var curAcl = curSord.aclItems;
+        for(j=0;j&lt;curAcl.length;j++){
+            if(curAcl[j].name == curWf.ownerName){
+                var newAcls = Packages.org.apache.commons.lang3.ArrayUtils.remove(curAcl, j);
+                curSord.aclItems = newAcls;
+                ixConnect.ix().checkinSord(curSord, new SordZ(SordC.mbAclItems), LockC.NO);
+            }
+        }
+    }
+    EM_WF_NEXT = "0";
+
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+}
