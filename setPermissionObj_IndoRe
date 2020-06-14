@@ -1,0 +1,29 @@
+if (EM_WF_NODE.nodeName == "SET_PERMISSION") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+
+    importPackage(Packages.de.elo.mover.utils);
+    var ixC = new Packages.de.elo.mover.main.IXconnect(ixConnect);
+    var succ = wf.getSuccessor(EM_WF_NODE);
+    var succName = succ.userName;
+    var succId = succ.userId;
+    var sordZ = new SordZ();
+    sordZ.add(SordC.mbAclItems);
+    var newAcl = new AclItem();
+    newAcl.id = succId;
+    newAcl.name = succName;
+    newAcl.type = AclItemC.TYPE_GROUP;
+    newAcl.access = AccessC.LUR_READ | AccessC.LUR_WRITE | AccessC.LUR_EDIT | AccessC.LUR_LIST;
+    EM_ACT_SORD.aclItems = Packages.org.apache.commons.lang3.ArrayUtils.add(EM_ACT_SORD.aclItems, newAcl);
+    ixConnect.ix().checkinSord(EM_ACT_SORD, sordZ, LockC.NO);
+    var fi = Packages.de.elo.mover.utils.ELOAsSearchUtils.createFindInfoByChildren(EM_ACT_SORD.id, false);
+    fi.findChildren.endLevel = 1;
+    var secSords = Packages.de.elo.mover.utils.ELOAsSearchUtils.doSearch(ixC, fi);
+    for (var i = 0; i < secSords.size(); i++) {
+        var curSord = secSords.get(i);
+        curSord.aclItems = Packages.org.apache.commons.lang3.ArrayUtils.add(curSord.aclItems, newAcl);
+        ixConnect.ix().checkinSord(curSord, sordZ, LockC.NO);
+    }
+    EM_WF_NEXT = "0";
+
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+}
