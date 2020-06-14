@@ -1,0 +1,38 @@
+if(EM_WF_NODE.nodeName == "SLA"){
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+    
+    var mapData = ixConnect.ix().checkoutMap(MapDomainC.DOMAIN_SORD, String(EM_ACT_SORD.id), null, LockC.NO);
+    var wfAct = wf.readActiveWorkflow(false);
+    var totalDays = 0;
+    var curNode = wf.getNodeById(wfAct, 7);
+    var timeLimit = mapData.mapItems.get("SLA").getValue();
+    var escalate = java.lang.reflect.Array.newInstance(WFTimeLimit, 2);
+    escalate[0] = new WFTimeLimit();
+    escalate[0].timeLimit = Math.ceil(Number(timeLimit)) * 1440;
+    escalate[0].userName = "Escalation Dept. Layanan Operasional";
+    totalDays += Math.ceil(Number(timeLimit));
+    escalate[1] = new WFTimeLimit();
+    curNode.timeLimitEscalations = escalate;
+    ixConnect.ix().checkinWorkFlow(wfAct, WFDiagramC.mbAll, LockC.NO);
+    DATEDUE = calcLocal(totalDays);
+    EM_WRITE_CHANGED = true;
+    EM_WF_NEXT = "0";
+
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+}
+function localToIso(local){
+    var formatter = Packages.java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd");
+    return formatter.format(local);
+}
+
+function calcLocal(days){
+    var result = Packages.java.time.LocalDate.now();
+    var addedDays = 0;
+    while (addedDays &lt; days){
+        result = result.plusDays(1);
+        if (!(result.getDayOfWeek() == Packages.java.time.DayOfWeek.SATURDAY || result.getDayOfWeek() == Packages.java.time.DayOfWeek.SUNDAY)) {
+            ++addedDays;
+        }
+    }
+    return localToIso(result);
+}
