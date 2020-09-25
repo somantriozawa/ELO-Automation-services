@@ -1,0 +1,52 @@
+// Mask Name: Mask name
+// Search from: WORKFLOW
+// Import file edited using postgres db and elodb ownership on table autonumbering
+if (EM_WF_NODE.nodeName == "GENERATE_NUMBER") {
+    var numeralCodes = [["","I","II","III","IV","V","VI","VII","VIII","IX"],         // Ones
+                      ["","X","XX","XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"],   // Tens
+                      ["","C","CC","CCC","CD","D","DC","DCC","DCCC","CM"]];        // Hundreds
+    function convert(num) {
+        var numeral = "";
+        var digits = num.toString().split('').reverse();
+        for (var i=0; i < digits.length; i++){
+            numeral = numeralCodes[i][parseInt(digits[i])] + numeral;
+        }
+        return numeral;
+    }
+    var sordNomor = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO).getSord();
+    var answer = "";
+    if(Packages.org.apache.commons.lang3.StringUtils.isBlank(ix.getIndexValueByName(sordNomor, "PFNOMORMEMO"))){
+        var res = db.getLine(0, "SELECT * FROM public.autonumbering WHERE kwf='Memo HRG'");
+        if (String(res["tahun"]) != String(Calendar.getInstance().get(Calendar.YEAR)) || parseInt(res["nomor"]) > 9999) {
+            answer = String("MEMO-" + Packages.org.apache.commons.lang3.StringUtils.leftPad("1", 3, "0") + "/PEF-HRG/" + convert(Calendar.getInstance().get(Calendar.MONTH) +1 ) + "/" + String(Calendar.getInstance().get(Calendar.YEAR)));
+            ix.setIndexValueByName(sordNomor, "PFNOMORMEMO", answer);
+            sordNomor.name = answer;
+            var checkInNomor = ixConnect.ix().checkinSord(sordNomor, SordC.mbAllIndex, LockC.NO);
+            db.doUpdate(0, "UPDATE public.autonumbering SET tahun="+Calendar.getInstance().get(Calendar.YEAR)+", nomor=1 WHERE kwf='Memo HRG'");
+        } else {
+            var newnomor = parseInt(res["nomor"]) + 1;
+            answer = String("MEMO-" + Packages.org.apache.commons.lang3.StringUtils.leftPad(String(newnomor), 3, "0") + "/PEF-HRG/" + convert(Calendar.getInstance().get(Calendar.MONTH) + 1) + "/" + String(Calendar.getInstance().get(Calendar.YEAR)));
+            ix.setIndexValueByName(sordNomor, "PFNOMORMEMO", answer);
+            sordNomor.name = answer;
+            var checkInNomor = ixConnect.ix().checkinSord(sordNomor, SordC.mbAllIndex, LockC.NO);
+            db.doUpdate(0, "UPDATE public.autonumbering SET nomor=" + newnomor + " WHERE kwf='Memo HRG'");
+        }
+    }
+    // Update Nomor Memo
+    try {
+        var template = fu.getTempFile(EM_ACT_SORD.id);
+        var asposeDoc = new Packages.com.aspose.words.Document(template);
+        var bookmarks = asposeDoc.getRange().getBookmarks();
+        bookmarks.get("NO_MEMO_1").setText(answer);
+        bookmarks.get("NO_MEMO_2").setText(answer);
+        asposeDoc.save(template, Packages.com.aspose.words.SaveFormat.DOCX);
+        fu.addVersion2(EM_ACT_SORD.id, template, null, null, false);
+    } catch (x) {
+        log.error(x);
+    }
+    var newFolderName = "¶Memo¶Human Resources & General Affairs¶" + DEPARTEMENHRG + "¶" + PFTGLMEMO.substr(0,4) + "¶" + PFTGLMEMO.substr(4,2);    
+    ACL = "PARENT";
+    bt.moveTo(Sord, newFolderName);
+    EM_WF_NEXT = "0";
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+}
