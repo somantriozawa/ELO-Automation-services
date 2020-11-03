@@ -1,0 +1,18 @@
+// search form: kwf monitring
+// search: TREEWALK
+// id: objid
+if (EM_TREE_STATE == 1) {
+    EM_WRITE_CHANGED = true;
+    if (EM_ACT_SORD.type < SordC.LBT_DOCUMENT) {
+        if ((EM_ACT_SORD.id == 1)) {
+            return;
+        }
+        var sordToDelete = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, SordC.mbAllIndex, LockC.NO);
+        if (sordToDelete) {
+            var childcount = sordToDelete.childCount;
+            if (childcount == 0) {
+                ixConnect.ix().deleteSord(null, String(sordToDelete.id), LockC.NO, null);
+            }
+        }
+    }
+}
