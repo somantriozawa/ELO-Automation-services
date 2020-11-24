@@ -1,0 +1,15 @@
+if (EM_WF_NODE.nodeName == "GEN_FOLDER") {
+    for (var idx = 1; idx <= 10; idx++) {
+        if(Packages.org.apache.commons.lang3.StringUtils.isNotBlank(ix.getIndexValueByName(EM_ACT_SORD, "SPIOBJECTAUDIT"+idx))){
+            var newFolder = ixConnect.ix().createSord("0", "Pelaksanaan Audit LHA", EditInfoC.mbSord).sord;
+            ix.setIndexValueByName(newFolder, "DATESUBMITTED", ix.getIndexValueByName(EM_ACT_SORD, "DATESUBMITTED"));
+            ix.setIndexValueByName(newFolder, "SPIOBJECTAUDIT", ix.getIndexValueByName(EM_ACT_SORD, "SPIOBJECTAUDIT"+idx));
+            ix.setIndexValueByName(newFolder, "SPIPERIHAL", ix.getIndexValueByName(EM_ACT_SORD, "SPIPERIHAL"));
+            newFolder.name = ix.getIndexValueByName(newFolder, "SPIOBJECTAUDIT").substr(0,120);
+            newFolder.type = 18;
+            var newId = ixConnect.ix().checkinSord(newFolder, SordC.mbAllIndex, LockC.NO);
+            ixConnect.ix().copySord(String(newId), String(EM_ACT_SORD.id), null, CopySordC.REFERENCE);
+        }
+    }
+    EM_WF_NEXT = "0";
+}
