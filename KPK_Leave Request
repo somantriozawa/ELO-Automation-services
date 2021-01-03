@@ -1,0 +1,118 @@
+// Name: Leave Request
+//Search form: Leave Request
+//Index search: WORKFLOW
+//Interval: Every
+//Rules
+if (EM_WF_NODE.nodeName == "Generate Document") {
+    if (EM_WF_NODE.nodeId == 8) {
+        var template = fu.getTempFile(1525);
+        var doc = new Packages.com.aspose.words.Document(template);
+        var bookmarks = doc.getRange().getBookmarks();
+        var mapData = ixConnect.ix().checkoutMap(MapDomainC.DOMAIN_SORD, String(EM_ACT_SORD.id), null, LockC.NO);
+        bookmarks.get("TANGGAL").setText(formatDate(CUTI_TANGGAL));
+        bookmarks.get("DATE").setText(formatDate(CUTI_DATE));
+        bookmarks.get("DATETO").setText(formatDate(CUTI_DATETO));
+        bookmarks.get("NAMADEPARTEMENT").setText(CUTI_NAMADEPARTEMENT);
+        bookmarks.get("NAMAKARYAWAN").setText(CUTI_NAMAKARYAWAN);
+        bookmarks.get("NIP").setText(NIP);
+        bookmarks.get("KEBUTUHAN").setText(mapData.mapItems.get("KEBUTUHAN").getValue());
+        bookmarks.get("NAMAREQUESTOR").setText(getSignData("WO_REQUESTOR", "user"));
+        insertImage(doc, bookmarks.get("SIGNREQUESTOR"), "WO_REQUESTOR");
+        doc.save(template, Packages.com.aspose.words.SaveFormat.DOCX);
+        uploadDoc("Surat Cuti", template);
+        NAME = CUTI_NAMAKARYAWAN;
+        EM_WRITE_CHANGED = true;
+        bt.moveTo(Sord, "¶Komisi Pemberantasan Korupsi (KPK)" + "¶HR Department" + "¶Cuti" + "¶" + CUTI_DATE.substr(0, 4) + "¶" + CUTI_DATE.substr(4, 2) + "¶" + CUTI_DATE.substr(6, 2));
+    } else if (EM_WF_NODE.nodeId == 15) {
+        var childId = ix.collectChildren(EM_ACT_SORD.id, false)[0].id;
+        var template = fu.getTempFile(childId);
+        var doc = new Packages.com.aspose.words.Document(template);
+        var bookmarks = doc.getRange().getBookmarks();
+        bookmarks.get("NAMATASAN").setText(getSignData("WO_ATASAN", "user"));
+        insertImage(doc, bookmarks.get("SIGNATASAN"), "WO_ATASAN");
+        bookmarks.get("JABATANATASAN").setText(getOrgUnitName(getSignData("WO_ATASAN", "user")));
+        doc.save(template, Packages.com.aspose.words.SaveFormat.DOCX);
+        fu.addVersion2(childId, template, "", "", false);
+    } else if (EM_WF_NODE.nodeId == 14) {
+        var childId = ix.collectChildren(EM_ACT_SORD.id, false)[0].id;
+        var template = fu.getTempFile(childId);
+        var doc = new Packages.com.aspose.words.Document(template);
+        var bookmarks = doc.getRange().getBookmarks();
+        bookmarks.get("NAMAPERSONALIA").setText(getSignData("WO_PERSONALIA", "user"));
+        insertImage(doc, bookmarks.get("SIGNPERSONALIA"), "WO_PERSONALIA");
+        //bookmarks.get("JABATANPERSONALIA").setText(getOrgUnitName(getSignData("WO_PERSONALIA", "user")));
+        doc.save(template, Packages.com.aspose.words.SaveFormat.DOCX);
+        fu.addVersion2(childId, template, "", "", false);
+    }
+
+    EM_WF_NEXT = "0";
+
+} else if (EM_WF_NODE.nodeName == "Add Date") {
+    ix.setIndexValueByName(EM_ACT_SORD, "CUTI_DATE", Packages.de.elo.mover.utils.ELOAsDateUtils.isoFromDateShort(new java.util.Date()));
+    ixConnect.ix().checkinSord(EM_ACT_SORD, new SordZ(SordC.mbObjKeys), LockC.NO);
+    EM_WF_NEXT = "0";
+}
+
+
+function insertImage(doc, bookmark, blobName) {
+    var signObj = getSignData(blobName, "signature");
+    var docbuild = new com.aspose.words.DocumentBuilder(doc);
+    docbuild.moveTo(bookmark.getBookmarkStart());
+    var str = new java.lang.String(signObj.substring(signObj.indexOf(",") + 1)).getBytes("UTF-8");
+    var bytes = Packages.java.util.Base64.getMimeDecoder().decode(str);
+    var shape = docbuild.insertImage(bytes);
+    bookmark.setText("");
+    shape.setHeight(20);
+    shape.setWidth(230);
+}
+
+function getSignData(blobName, type) {
+    var blob = checkoutBlob(blobName);
+    var objBlob = JSON.parse(blob);
+    return objBlob[type];
+}
+
+function checkoutBlob(blobName) {
+    var blobs = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    blobs[0] = blobName;
+    var mapData = ixConnect.ix().checkoutMap("formdata", EM_ACT_SORD.id, blobs, LockC.NO);
+    var mapVal = mapData.getMapItems().get(blobName);
+    var is = mapVal.getBlobValue().getStream();
+    return Packages.org.apache.commons.io.IOUtils.toString(
+        is, Packages.java.nio.charset.StandardCharsets.UTF_8);
+}
+
+function getOrgUnitName(username) {
+    var userInfo = ixConnect.ix().checkoutUser(username, CheckoutUsersC.BY_IDS, LockC.NO);
+    if (userInfo.orgUnitIds.length < 1) return "N/A";
+    var ouID = userInfo.orgUnitIds[0];
+    var orgUnits = ixConnect.ix().checkoutOrgUnits(null, LockC.NO);
+    return orgUnits.get(Integer(ouID)).name;
+}
+
+function uploadDoc(shortName, template) {
+    var sord = ixConnect.ix().createDoc(String(EM_ACT_SORD.id), "Basic Entry",
+        null, ixConnect.getCONST().EDIT_INFO.mbSordDocAtt).getSord();
+    sord.setName(shortName);
+    var doc = new Packages.de.elo.ix.client.Document();
+    var dv = new DocVersion();
+    dv.setPathId(sord.getPath());
+    dv.setEncryptionSet(sord.getDetails().getEncryptionSet());
+    dv.setExt(ixConnect.getFileExt(template));
+    var dvs = java.lang.reflect.Array.newInstance(DocVersion, 1);
+    dvs[0] = dv;
+    doc.setDocs(dvs);
+    doc = ixConnect.ix().checkinDocBegin(doc);
+    dv = doc.getDocs()[0];
+    var url = dv.getUrl();
+    dv.setUploadResult(ixConnect.upload(url, template));
+    doc = ixConnect.ix().checkinDocEnd(sord, SordC.mbAll, doc, LockC.NO);
+    log.info("ObjID: " + doc.getObjId());
+    fu.deleteFile(template);
+}
+
+function formatDate(isoDate) {
+    var pattern = "dd/MM/yyyy";
+    var simpleDateFormat = new Packages.java.text.SimpleDateFormat(pattern);
+    return simpleDateFormat.format(ELOAsDateUtils.dateFromIso(isoDate));
+}
