@@ -1,0 +1,99 @@
+// Name: Escalated Email
+//Search form: Basic Entry
+//Index search: DIRECT
+//Interval: Every
+//Rules
+function sendEmail(to, cc, subject, content) {
+    let from = "no-reply@elo.co.id";
+    let username = "no-reply@elo.co.id"; //change accordingly
+    let password = "Elo123@!"; //change accordingly
+    let host = "smtp.office365.com";
+    var props = new Packages.java.util.Properties();
+    props.put("mail.smtp.auth", "true");
+    props.put("mail.smtp.starttls.enable", "true");
+    props.put("mail.smtp.ssl.enable", "false");
+    props.put("mail.smtp.host", host);
+    props.put("mail.smtp.port", "587"); //587, 465
+    // Get the Session object.
+    var session = Session.getInstance(props, new JavaAdapter(Packages.javax.mail.Authenticator, {
+        getPasswordAuthentication: function () {
+            return new PasswordAuthentication(username, password);
+        }
+    }));
+    // Create a default MimeMessage object.
+    var message = new MimeMessage(session);
+    // Set From: header field of the header.
+    message.setFrom(new InternetAddress(from));
+    // Set To: header field of the header.
+    if (to && to.length > 0)
+        for (i = 0; i < to.length; i++)
+            message.addRecipient(Message.RecipientType.TO,
+                new InternetAddress(to[i]));
+    if (cc && cc.length > 0)
+        for (i = 0; i < cc.length; i++)
+            message.addRecipient(Message.RecipientType.CC,
+                new InternetAddress(cc[i]));
+    // Set Subject: header field
+    message.setSubject(subject);
+    // Send the actual HTML message, as big as you like
+    message.setContent(content, "text/plain");
+    // Send message
+    Transport.send(message);
+    log.info("Sent message successfully....");
+}
+function getEmailFromUserName(username) {
+    var userInfo = ixConnect.ix().checkoutUser(username, CheckoutUsersC.BY_IDS, LockC.NO);
+    return userInfo.userProps[UserInfoC.PROP_NAME_EMAIL];
+}
+
+if (!String.prototype.format) {
+    String.prototype.format = function () {
+        var args = arguments;
+        return this.replace(/{(\d+)}/g, function (match, number) {
+            return typeof args[number] != 'undefined'
+                ? args[number]
+                : match
+                ;
+        });
+    };
+}
+
+var fw = new FindWorkflowInfo();
+fw.overTimeLimit = false;
+fw.inclDeleted = false;
+fw.inclHidden = false;
+fw.templateId = "2";
+fw.type = WFTypeC.ACTIVE;
+var fr = ixConnect.ix().findFirstWorkflows(fw, 16677744, WFDiagramC.mbAll);
+var wfDiags = fr.workflows;
+for (i = 0; i < wfDiags.length; i++) {
+    var wfDiag = wfDiags[i];
+    var nodeIds = [2, 4];
+    var userNameEscalate = "";
+    var nodeResponsible;
+    for (j = 0; j < nodeIds.length; j++) {
+        var wfNode = wf.getNodeById(wfDiag, nodeIds[j]);
+        if (wfNode.timeLimitEscalations[1].overTimeLimit) {
+            userNameEscalate = wfNode.timeLimitEscalations[1].userName;
+            nodeResponsible = wfNode;
+            break;
+        } else if (wfNode.timeLimitEscalations[0].overTimeLimit) {
+            userNameEscalate = wfNode.timeLimitEscalations[0].userName;
+            nodeResponsible = wfNode;
+            break;
+        }
+    }
+    if (Packages.org.apache.commons.lang3.StringUtils.isNotBlank(userNameEscalate)) {
+        var emailaddr = getEmailFromUserName(userNameEscalate);
+        var subject = "Keterlambatan Pengerjaan";
+        var body = "";
+        if (nodeResponsible.userName == "Reviewer") {
+            body = "Dear Bpk/Ibu [{0}],\nTugas [{1}] masih menunggu untuk di kerjakan oleh karyawan yang ditugaskan. mohon untuk di tindak lanjut.\nTerimakasih"
+                .format(userNameEscalate, nodeResponsible.name);
+        } else {
+            body = "Dear Bpk/Ibu [{0}],\n[{1}] Telah melewati batas waktu pengerjaan [{2}] yang di tentukan. Mohon untuk di tidak lanjuti.\nTerimakasih. "
+                .format(userNameEscalate, nodeResponsible.userName, nodeResponsible.name);
+        }
+        sendEmail([emailaddr], null, subject, body);
+    }
+}
