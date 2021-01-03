@@ -1,0 +1,138 @@
+// Name: KAK
+//Search form: KAK
+//Index search: WORKFLOW
+//Interval: Every
+//Rules
+if (EM_WF_NODE.nodeName == "Automail") {
+    log.info("Email start");
+    importPackage(Packages.de.elo.mover.utils);
+    function sendEmail(to, cc, subject, content) {
+        let from = "no-reply@elo.co.id";
+        let username = "no-reply@elo.co.id"; //change accordingly
+        let password = "Elo123@!"; //change accordingly
+        let host = "smtp.office365.com";
+        var props = new Packages.java.util.Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.ssl.enable", "false");
+        props.put("mail.smtp.host", host);
+        props.put("mail.smtp.port", "587"); //587, 465
+        // Get the Session object.
+        var session = Session.getInstance(props, new JavaAdapter(Packages.javax.mail.Authenticator, {
+            getPasswordAuthentication: function () {
+                return new PasswordAuthentication(username, password);
+            }
+        }));
+        // Create a default MimeMessage object.
+        var message = new MimeMessage(session);
+        // Set From: header field of the header.
+        message.setFrom(new InternetAddress(from));
+        // Set To: header field of the header.
+        if (to && to.length > 0)
+            for (i = 0; i < to.length; i++)
+                message.addRecipient(Message.RecipientType.TO,
+                    new InternetAddress(to[i]));
+        if (cc && cc.length > 0)
+            for (i = 0; i < cc.length; i++)
+                message.addRecipient(Message.RecipientType.CC,
+                    new InternetAddress(cc[i]));
+        // Set Subject: header field
+        message.setSubject(subject);
+        // Send the actual HTML message, as big as you like
+        message.setContent(content, "text/html");
+        // Send message
+        Transport.send(message);
+        log.info("Sent message successfully....");
+    }
+    // var actWF = wf.readActiveWorkflow(false);
+    var succ = wf.getSuccessor(EM_WF_NODE);
+    var subject = succ.name;
+    var succId = succ.userId;
+    var uinfo = ixConnect.ix().checkoutUsers([succId], CheckoutUsersC.ALL_GROUPS, LockC.NO);
+    var to = new Array();
+    if (uinfo.length > 0 && uinfo[0].type == UserInfoC.TYPE_GROUP) {
+        var ulist = ixConnect.ix().checkoutUsers([succId], CheckoutUsersC.USERS_OF_GROUP, LockC.NO);
+        for (i = 0; i < ulist.length; i++) {
+            var mailAddr = ulist[i].userProps[UserInfoC.PROP_NAME_EMAIL];
+            to.push(mailAddr);
+        }
+    } else to.push(uinfo.userProps[UserInfoC.PROP_NAME_EMAIL]);
+    var body = "Dear Team,<br/>" + succ.comment + "<br/>Thankyou.";
+    sendEmail(to, null, subject, body);
+    EM_WF_NEXT = "0";
+    log.info("Email end");
+} else if (EM_WF_NODE.nodeName == "Generate Document") {
+    importPackage(Packages.com.aspose.words);
+    var template = fu.getTempFile(EM_ACT_SORD.id);
+    var doc = new Packages.com.aspose.words.Document(template);
+    var bookmarks = doc.getRange().getBookmarks();
+    if (EM_WF_NODE.nodeId == 17) {
+        ix.setIndexValueByName(EM_ACT_SORD, "DOKSTATUS", "Under Review Line I");
+        ixConnect.ix().checkinSord(EM_ACT_SORD, new SordZ(SordC.mbObjKeys), LockC.NO);
+        bookmarks.get("CREATOR").setText(getSignData("WO_DIBUATOLEH", "user"));
+        insertImage(doc, bookmarks.get("SIGN_CREATOR"), "WO_DIBUATOLEH");
+        bookmarks.get("JABATAN_CREATOR").setText(getOrgUnitName(getSignData("WO_DIBUATOLEH", "user")));
+        ix.setIndexValueByName(EM_ACT_SORD, "NAMAPEMBUATDOK", getSignData('WO_DIBUATOLEH', 'user'));
+        ixConnect.ix().checkinSord(EM_ACT_SORD, new SordZ(SordC.mbObjKeys), LockC.NO);
+    } else if (EM_WF_NODE.nodeId == 16) {
+        ix.setIndexValueByName(EM_ACT_SORD, "DOKSTATUS", "Under Review Line II");
+        ixConnect.ix().checkinSord(EM_ACT_SORD, new SordZ(SordC.mbObjKeys), LockC.NO);
+        bookmarks.get("REVIEWER").setText(getSignData("WO_DIPERIKSAOLEH", "user"));
+        insertImage(doc, bookmarks.get("SIGN_REVIEWER"), "WO_DIPERIKSAOLEH");
+        bookmarks.get("JABATAN_REVIEWER").setText(getOrgUnitName(getSignData("WO_DIPERIKSAOLEH", "user")));
+        ix.setIndexValueByName(EM_ACT_SORD, "NAMAAPPROVAL", getSignData('WO_DIPERIKSAOLEH', 'user'));
+        ixConnect.ix().checkinSord(EM_ACT_SORD, new SordZ(SordC.mbObjKeys), LockC.NO);
+    } else if (EM_WF_NODE.nodeId == 11) {
+        bookmarks.get("APPROVER").setText(getSignData("WO_DISETUJUIOLEH", "user"));
+        insertImage(doc, bookmarks.get("SIGN_APPROVER"), "WO_DISETUJUIOLEH");
+        bookmarks.get("JABATAN_APPROVER").setText(getOrgUnitName(getSignData("WO_DISETUJUIOLEH", "user")));
+        ix.setIndexValueByName(EM_ACT_SORD, "NAMAPEJABAT", getSignData('WO_DISETUJUIOLEH', 'user'));
+        ix.setIndexValueByName(EM_ACT_SORD, "DOKSTATUS", "Approved");
+        ixConnect.ix().checkinSord(EM_ACT_SORD, new SordZ(SordC.mbObjKeys), LockC.NO);
+    }
+    doc.save(template, SaveFormat.DOCX);
+    fu.addVersion2(EM_ACT_SORD.id, template, "", "", false);
+    EM_WF_NEXT = "0";
+} else if (EM_WF_NODE.nodeName == "Update : Revised") {
+    ix.setIndexValueByName(EM_ACT_SORD, "DOKSTATUS", "Need to Revise");
+    ixConnect.ix().checkinSord(EM_ACT_SORD, new SordZ(SordC.mbObjKeys), LockC.NO);
+    EM_WF_NEXT = "0";
+} else if (EM_WF_NODE.nodeName == "Update : Rejected") {
+    ix.setIndexValueByName(EM_ACT_SORD, "DOKSTATUS", "Rejected");
+    ixConnect.ix().checkinSord(EM_ACT_SORD, new SordZ(SordC.mbObjKeys), LockC.NO);
+    EM_WF_NEXT = "0";
+}
+
+function insertImage(doc, bookmark, blobName) {
+    var signObj = getSignData(blobName, "signature");
+    var docbuild = new com.aspose.words.DocumentBuilder(doc);
+    docbuild.moveTo(bookmark.getBookmarkStart());
+    var str = new java.lang.String(signObj.substring(signObj.indexOf(",") + 1)).getBytes("UTF-8");
+    var bytes = Packages.java.util.Base64.getMimeDecoder().decode(str);
+    var shape = docbuild.insertImage(bytes);
+    bookmark.setText("");
+    // shape.setHeight(40);
+    // shape.setWidth(120);
+}
+function getSignData(blobName, type) {
+    var blob = checkoutBlob(blobName);
+    var objBlob = JSON.parse(blob);
+    return objBlob[type];
+}
+function checkoutBlob(blobName) {
+    var blobs = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    blobs[0] = blobName;
+    var mapData = ixConnect.ix().checkoutMap("formdata", EM_ACT_SORD.id, blobs, LockC.NO);
+    var mapVal = mapData.getMapItems().get(blobName);
+    var is = mapVal.getBlobValue().getStream();
+    return Packages.org.apache.commons.io.IOUtils.toString(
+        is, Packages.java.nio.charset.StandardCharsets.UTF_8);
+}
+
+function getOrgUnitName(username) {
+    var userInfo = ixConnect.ix().checkoutUser(username, CheckoutUsersC.BY_IDS, LockC.NO);
+    if (userInfo.orgUnitIds.length < 1) return "N/A";
+    var ouID = userInfo.orgUnitIds[0];
+    var orgUnits = ixConnect.ix().checkoutOrgUnits(null, LockC.NO);
+    return orgUnits.get(Integer(ouID)).name;
+}
