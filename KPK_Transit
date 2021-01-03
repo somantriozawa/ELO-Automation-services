@@ -1,0 +1,35 @@
+// Name: Transit
+//Search form: Basic Entry
+//Index search: TREEWALK
+//Index term: objid
+//Interval: Every
+//Rules
+if (EM_TREE_STATE == 1) {
+    EM_WRITE_CHANGED = true;
+    log.info("-- entry found: " + EM_ACT_SORD.name + "[" + EM_ACT_SORD.id + "]");
+    if (EM_ACT_SORD.type < SordC.LBT_DOCUMENT) {
+        log.info("SORD is a folder: delete if empty");
+        if ((EM_ACT_SORD.name.startsWith("0")) || (EM_ACT_SORD.name.startsWith("Daily")) || (EM_ACT_SORD.id == 1)) {
+            // Do net delete base-folder or archive entry. Identification on name or id
+            // Archive root entry should never be empty. So test only for safety reasons
+            return;
+        }
+        // Test if folder has childs, is empty or not, Do not delete if not empty
+        var info = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO);
+        var sordToDelete = info.sord;
+        if (sordToDelete) {
+            var childcount = sordToDelete.childCount;
+            if (childcount == 0) {
+                ix.deleteSord(sordToDelete.parentId, sordToDelete.id);
+            }
+        }
+    } else {
+        log.info("Object is a document: move to new filing structure");
+        if (EM_ACT_SORD.maskName.equalsIgnoreCase("KAK")) {
+            var newFolderName = "¶Komisi Pemberantasan Korupsi (KPK)¶IT Department¶KAK¶" + "Tahun Anggaran " + ix.getIndexValueByName(EM_ACT_SORD, "TAHUNANGGARAN") + "¶" + ix.getIndexValueByName(EM_ACT_SORD, "TANGGALDOKUMEN").substr(0, 4) + "¶" + ix.getIndexValueByName(EM_ACT_SORD, "TANGGALDOKUMEN").substr(4, 2) + "¶" + ix.getIndexValueByName(EM_ACT_SORD, "TANGGALDOKUMEN").substr(6, 2);
+            log.info("---> Inhalt Variable newFolderName: " + newFolderName);
+            ACL = "PARENT";
+            bt.moveTo(Sord, newFolderName);
+        }
+    }
+}
