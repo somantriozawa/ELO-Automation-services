@@ -6,7 +6,7 @@
 function sendEmail(to, cc, subject, content) {
     let from = "no-reply@elo.co.id";
     let username = "no-reply@elo.co.id"; //change accordingly
-    let password = "Elo123@!"; //change accordingly
+    let password = "xxxx"; //change accordingly
     let host = "smtp.office365.com";
     var props = new Packages.java.util.Properties();
     props.put("mail.smtp.auth", "true");
