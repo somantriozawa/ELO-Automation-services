@@ -1,0 +1,50 @@
+// Name: Migrasi
+//Search form: Basic Entry
+//Index search: DIRECT
+//Interval: Every
+//Rules
+if (EM_WF_NODE.nodeName == "Migrasi"){
+    importPackage(Packages.com.aspose.cells);
+    var ixC = new Packages.de.elo.mover.main.IXconnect(ixConnect);
+    var excelFile = fu.getTempFile(1729);
+    var sheetPos = parseInt(0);
+    var parentPos ="C:\\Users\\Administrator\\Desktop\\Dokumen\\";
+    var book = new Workbook(excelFile);
+    var sheet = book.getWorksheets().get(sheetPos);
+    var cells = sheet.getCells();
+    var maskName = sheet.getName();
+    var parentFile = new java.io.File(parentPos + maskName);
+    for (j = 2; j <= cells.getMaxDataRow(); j++) {
+        var row = cells.getRows().get(j);
+        var maskRow = cells.getRows().get(0);
+        var curFile;
+        var curSord = ixConnect.ix().createDoc('0', 'KAK', maskName, ixConnect.getCONST().EDIT_INFO.mbSordDocAtt).getSord();
+        var doc = new Document();
+        var dv = new DocVersion();
+        for (k = 0; k <= cells.getMaxDataColumn(); k++) {
+            var cell = row.get(k);
+            var maskCell = maskRow.get(k);
+            if(maskCell.getStringValue() == "FILENAME"){
+                curFile = new java.io.File(parentFile, cell.getStringValue());
+                curSord.name = Packages.de.elo.mover.utils.ELOAsFileUtils.getNameWithoutExtension(curFile.getAbsolutePath());
+            }
+            else if (cell.getType() == CellValueType.IS_DATE_TIME)
+                ix.setIndexValueByName(curSord, maskCell.getStringValue(),
+                    Packages.de.elo.mover.utils.ELOAsDateUtils.isoFromDate(cell.getDateTimeValue().toDate()));
+            else ix.setIndexValueByName(curSord, maskCell.getStringValue(), cell.getStringValue());
+        }
+        dv.setPathId(curSord.getPath());
+        dv.setEncryptionSet(curSord.getDetails().getEncryptionSet());
+        dv.setExt(ixConnect.getFileExt(curFile));
+        var dvs = java.lang.reflect.Array.newInstance(DocVersion, 1);
+        dvs[0] = dv;
+        doc.setDocs(dvs);
+        doc = ixConnect.ix().checkinDocBegin(doc);
+        dv = doc.getDocs()[0];
+        var url = dv.getUrl();
+        dv.setUploadResult(ixConnect.upload(url, curFile));
+        doc = ixConnect.ix().checkinDocEnd(curSord, SordC.mbAll, doc, LockC.NO);
+        EM_WF_NEXT = "0";
+    }
+    elo.setAnswer("Success");
+    }
