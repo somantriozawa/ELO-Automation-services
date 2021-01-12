@@ -4,7 +4,7 @@ if (EM_WF_NODE.nodeName == "CLOSE_ACL") {
     var curSord = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO).sord;
     var curAcl = curSord.aclItems;
     for (j = 0; j < curAcl.length; j++) {
-        if (curAcl.id == 9999) { //everyone
+        if (curAcl[j].id == 9999) { //everyone
             var newAcls = Packages.org.apache.commons.lang3.ArrayUtils.remove(curAcl, j);
             curSord.aclItems = newAcls;
             ixConnect.ix().checkinSord(curSord, new SordZ(SordC.mbAclItems), LockC.NO);
