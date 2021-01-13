@@ -1,0 +1,1 @@
+var email = ix.getIndexValueByName(EM_ACT_SORD, "FFEMAIL") --> Mengambil value dari EM_ACT_SORD dengan nama group FFEMAIL dan disimpan di variabel email
