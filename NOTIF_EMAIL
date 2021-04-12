@@ -1,0 +1,78 @@
+if (EM_WF_NODE.nodeName == "NOTIF_EMAIL") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+
+    importPackage(Packages.de.elo.mover.utils);
+    var succ = wf.getSuccessor(EM_WF_NODE);
+    var subject = succ.name;
+    var succId = succ.userId;
+    // next successor node group
+    var uinfo = ixConnect.ix().checkoutUsers([succId], CheckoutUsersC.BY_IDS, LockC.NO);
+    var to = new Array();
+    if (uinfo.length > 0 && uinfo[0].type == UserInfoC.TYPE_GROUP) {
+        var ulist = ixConnect.ix().checkoutUsers([succId], CheckoutUsersC.USERS_OF_GROUP, LockC.NO);
+        for (k = 0; k < ulist.length; k++) {
+            var mailAddr = ulist[k].userProps[UserInfoC.PROP_NAME_EMAIL];
+            to.push(mailAddr);
+        }
+    } else to.push(uinfo[0].userProps[UserInfoC.
+        PROP_NAME_EMAIL]);
+    var body = "Dear Team,<br/>" + succ.comment + "<br/>Thankyou.";
+    sendEmail(to, null, subject, body);
+
+    EM_WF_NEXT = "0";
+
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+}
+// HELPER
+function sendEmail(to, cc, subject, content) {
+    let from = "email@gmail.com";
+    let username = "email@gmail.com"; //change accordingly
+    let password = "password";   //change accordingly
+    let host = "smtp.gmail.com";
+    var props = new Packages.java.util.Properties();
+    props.put("mail.smtp.auth", "true");
+    props.put("mail.smtp.starttls.enable", "false");
+    props.put("mail.smtp.ssl.enable", "true");
+    props.put("mail.smtp.host", host);
+    props.put("mail.smtp.port", "465"); //587, 465
+    // Get the Session object.
+    var session = Session.getInstance(props, new JavaAdapter(Packages.javax.mail.Authenticator, {
+        getPasswordAuthentication: function () {
+            return new PasswordAuthentication(username, password);
+        }
+    }));
+    // Create a default MimeMessage object.
+    var message = new MimeMessage(session);
+    // Set From: header field of the header.
+    message.setFrom(new InternetAddress(from));
+    // Set To: header field of the header.
+    if (to && to.length > 0)
+        for (i = 0; i < to.length; i++)
+            message.addRecipient(Message.RecipientType.TO,
+                new InternetAddress(to[i]));
+    if (cc && cc.length > 0)
+        for (j = 0; j < cc.length; j++)
+            message.addRecipient(Message.RecipientType.CC,
+                new InternetAddress(cc[j]));
+    // Set Subject: header field
+    message.setSubject(subject);
+    // Send the actual HTML message, as big as you like
+    message.setContent(content, "text/html");
+    // Send message
+    Transport.send(message);
+    log.info("Sent message successfully....");
+}
+
+// Jabatan dari OU
+function getOrgUnitName(username) {
+    var userInfo = ixConnect.ix().checkoutUser(username, CheckoutUsersC.BY_IDS, LockC.NO);
+    if (userInfo.orgUnitIds.length < 1) return "N/A";
+    var ouID = userInfo.orgUnitIds[0];
+    var orgUnits = ixConnect.ix().checkoutOrgUnits(null, LockC.NO);
+    return orgUnits.get(Integer(ouID)).name;
+}
+// Jabatan di simpan di properties
+function getPropName(username) {
+    var userInfo = ixConnect.ix().checkoutUser(username, CheckoutUsersC.BY_IDS, LockC.NO);
+    return userInfo.userProps[UserInfoC.PROP_USERDEFINED_2]; // properties 2
+}
