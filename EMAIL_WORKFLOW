@@ -22,6 +22,26 @@ if (EM_WF_NODE.nodeName == "NOTIF_EMAIL") {
     EM_WF_NEXT = "0";
 
     log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+} else if (EM_WF_NODE.nodeName == "BLAST_EMAIL") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+    var wfDiag = wf.readActiveWorkflow();
+    var nodeIds = [1, 3]; //list nodes yang akan di email
+    var to = new Array();
+    for (i = 0; i < nodeIds.length; i++) {
+        var wfNode = wf.getNodeById(wfDiag, nodeIds[i]);
+        var curUser = ixConnect.ix().checkoutUser(String(wfNode.userId), CheckoutUsersC.BY_IDS, LockC.NO);
+        var curEmail = curUser.userProps[UserInfoC.PROP_NAME_EMAIL];
+        if (Packages.org.apache.commons.lang3.StringUtils.isNotBlank(curEmail)) to.push(curEmail);
+    }
+    if (to.length > 0) {
+        var subject = "KAK Project {0}".format(ix.getIndexValueByName(EM_ACT_SORD, "PROJECT"));
+        var body = "Dear Team,<br/>Untuk KAK dengan Project {0} sudah disetujui oleh Direktur {1}.<br/>Terima kasih."
+            .format(ix.getIndexValueByName(EM_ACT_SORD, "PROJECT"), ix.getIndexValueByName(EM_ACT_SORD, "APPROVAL_2"));
+        sendEmail(to, null, subject, body);
+    }
+    EM_WF_NEXT = "0";
+
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
 }
 // HELPER
 function sendEmail(to, cc, subject, content) {
