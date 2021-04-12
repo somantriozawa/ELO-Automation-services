@@ -1,0 +1,74 @@
+if (EM_WF_NODE.nodeName == "SIGN_DOC") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+
+    var template = fu.getTempFile(EM_ACT_SORD.id);
+    var doc = new Packages.com.aspose.words.Document(template);
+    var bookmarks = doc.getRange().getBookmarks();
+    if (EM_WF_NODE.nodeId == 10) { // nodeid eloas untuk creator
+        // nama creator
+        bookmarks.get("PEMBUAT_DOKUMEN").setText(getSignData("WO_CREATOR", "user"));
+        // sign creator
+        insertImage(doc, bookmarks.get("SIGN_PEMBUAT"), "WO_CREATOR");
+        // jabatan creator
+        bookmarks.get("PEMBUAT_1").setText(getPropName(getSignData("WO_CREATOR", "user")));
+        // field creator
+        ix.setIndexValueByName(EM_ACT_SORD, "PEMBUAT_DOKUMEN", getSignData('WO_CREATOR', 'user'));
+        ixConnect.ix().checkinSord(EM_ACT_SORD, new SordZ(SordC.mbObjKeys), LockC.NO);
+    } else if (EM_WF_NODE.nodeId == 11) {
+        ixConnect.ix().checkinSord(EM_ACT_SORD, new SordZ(SordC.mbObjKeys), LockC.NO);
+        // nama kasatgas
+        bookmarks.get("APPROVAL_1").setText(getSignData("WO_KASATGAS", "user"));
+        // sign kasatgas
+        insertImage(doc, bookmarks.get("SIGN_APPROVAL1"), "WO_KASATGAS");
+        // jabatan kasatgas
+        bookmarks.get("JABATAN_1").setText(getPropName(getSignData("WO_KASATGAS", "user")));
+        // field kasatgas
+        ix.setIndexValueByName(EM_ACT_SORD, "APPROVAL_1", getSignData('WO_KASATGAS', 'user'));
+        ixConnect.ix().checkinSord(EM_ACT_SORD, new SordZ(SordC.mbObjKeys), LockC.NO);
+    } else if (EM_WF_NODE.nodeId == 9) {
+        // nama director
+        bookmarks.get("APPROVAL_2").setText(getSignData("WO_DIRECTOR", "user"));
+        // sign director
+        insertImage(doc, bookmarks.get("SIGN_APPROVAL2"), "WO_DIRECTOR");
+        // jabatan director
+        bookmarks.get("JABATAN_2").setText(getPropName(getSignData("WO_DIRECTOR", "user")));
+        // field director
+        ix.setIndexValueByName(EM_ACT_SORD, "APPROVAL_2", getSignData('WO_DIRECTOR', 'user'));
+        ixConnect.ix().checkinSord(EM_ACT_SORD, new SordZ(SordC.mbObjKeys), LockC.NO);
+    }
+    doc.save(template, Packages.com.aspose.words.SaveFormat.DOCX);
+    fu.addVersion2(EM_ACT_SORD.id, template, "", "", false);
+    EM_WF_NEXT = "0";
+
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+}
+
+//HELPER
+// sign
+function insertImage(doc, bookmark, blobName) {
+    var signObj = getSignData(blobName, "signature");
+    var docbuild = new com.aspose.words.DocumentBuilder(doc);
+    docbuild.moveTo(bookmark.getBookmarkStart());
+    var str = new java.lang.String(signObj.substring(signObj.indexOf(",") + 1)).getBytes("UTF-8");
+    var bytes = Packages.java.util.Base64.getMimeDecoder().decode(str);
+    var shape = docbuild.insertImage(bytes);
+    bookmark.setText("");
+    // shape.setHeight(40);
+    // shape.setWidth(120);
+}
+//sign
+function getSignData(blobName, type) {
+    var blob = checkoutBlob(blobName);
+    var objBlob = JSON.parse(blob);
+    return objBlob[type];
+}
+// ambil sord dari blob
+function checkoutBlob(blobName) {
+    var blobs = java.lang.reflect.Array.newInstance(java.lang.String, 1);
+    blobs[0] = blobName;
+    var mapData = ixConnect.ix().checkoutMap("formdata", EM_ACT_SORD.id, blobs, LockC.NO);
+    var mapVal = mapData.getMapItems().get(blobName);
+    var is = mapVal.getBlobValue().getStream();
+    return Packages.org.apache.commons.io.IOUtils.toString(
+        is, Packages.java.nio.charset.StandardCharsets.UTF_8);
+}
