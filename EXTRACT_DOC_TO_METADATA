@@ -1,0 +1,24 @@
+if (EM_WF_NODE.nodeName == "EXTRACT_KAK") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+
+    if (Packages.org.apache.commons.lang3.StringUtils.isBlank(ix.getIndexValueByName(EM_ACT_SORD, "NAMA_DOKUMEN"))) { // cheking index NAMA_DOKUMEN jika blank jalankan
+        importPackage(Packages.com.aspose.words);
+        var template = fu.getTempFile(EM_ACT_SORD.id);
+        var doc = new Packages.com.aspose.words.Document(template);
+        var bookmarks = doc.getRange().getBookmarks();
+        var docBuild = new com.aspose.words.DocumentBuilder(doc);
+        ix.setIndexValueByName(EM_ACT_SORD, "NAMA_DOKUMEN", bookmarks.get("ELO_NAMA_DOKUMEN").getText()); // bookmark: ELO_NAMA_DOKUMEN; field: NAMA_DOKUMEN
+        ix.setIndexValueByName(EM_ACT_SORD, "PROGRAM", bookmarks.get("ELO_PROGRAM").getText());
+        ix.setIndexValueByName(EM_ACT_SORD, "PROJECT", bookmarks.get("ELO_PROJECT").getText());
+        ix.setIndexValueByName(EM_ACT_SORD, "TAHUN_ANGGARAN", bookmarks.get("ELO_TAHUN_ANGGARAN").getText());
+        ix.setIndexValueByName(EM_ACT_SORD, "MATA_ANGGARAN", bookmarks.get("ELO_MATA_ANGGARAN").getText());
+        ix.setIndexValueByName(EM_ACT_SORD, "PAKET_RUPBJ", bookmarks.get("ELO_PAKET_RUPBJ").getText());
+        ix.setIndexValueByName(EM_ACT_SORD, "PERKIRAAN_BIAYA", bookmarks.get("ELO_PERKIRAAN_BIAYA").getText());
+        ixConnect.ix().checkinSord(EM_ACT_SORD, new SordZ(SordC.mbObjKeys), LockC.NO);
+        var destId = ix.createSubPath(1, "¶Terms of References¶" + ix.getIndexValueByName(EM_ACT_SORD, "TAHUN_ANGGARAN"), 1); // folder tujuan
+        ixConnect.ix().copySord(destId, EM_ACT_SORD.id, null, CopySordC.MOVE);
+    }
+    EM_WF_NEXT = "0";
+    
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+}
