@@ -1,3 +1,5 @@
+String.prototype.format || (String.prototype.format = function () { var t = arguments; return this.replace(/{(\d+)}/g, function (r, o) { return void 0 !== t[o] ? t[o] : r }) });
+
 if (EM_WF_NODE.nodeName == "NOTIF_EMAIL") {
     log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
 
