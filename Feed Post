@@ -1,0 +1,19 @@
+function onExitWorkflowNode(ec, wfdiag, nodeId){
+    var node = getNode(wfdiag, nodeId);
+    var prop = JSON.parse(node.properties);
+    var feed = prop.feed;
+    var curSord = ix.checkoutSord(ec.ci, wfdiag.objId, SordC.mbAllIndex, LockC.NO);
+    var newAct = FeedService.createAction(ec.ci, EActionType.AutoComment, curSord);
+    newAct.text = feed;
+    FeedService.checkinAction(ec.ci, newAct, EActionType.AutoComment);
+}
+
+function getNode(workflow, nodeId) {
+    for (var i = 0; i < workflow.nodes.length; i++) {
+        var node = workflow.nodes[i];
+        if (node.id == nodeId) {
+            return node;
+        }
+    }
+    return null;
+}
