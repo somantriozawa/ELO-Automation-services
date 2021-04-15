@@ -1,0 +1,176 @@
+EM_FOLDERMASK = 1;
+function folderNaming(id, perihal, kwf) {
+    var objId = ix.createSubPath(id, "¶" + perihal, kwf);
+    return objId;
+}
+
+if (EM_WF_NODE.nodeName == "MOVED") {
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " Start");
+
+    //change wf name
+    var diag = wf.readActiveWorkflow(false);
+    diag.name = ix.getIndexValueByName(EM_ACT_SORD, "PERIHAL");
+    wf.writeWorkflow(diag);
+
+    NAME = PERIHAL;
+    EM_WRITE_CHANGED = true;
+
+    //moved
+    ACL = "PARENT";
+    if (SOPTYPE == "PERJALANAN DINAS") {
+        bt.moveTo(Sord, "¶EOFFICE¶PROTOCOLER¶" + SOPTYPE + "¶" + TICKETTYPE + "¶" + DATESUBMITTED.substr(0,4) + "¶" + DATESUBMITTED.substr(4,2) + "¶" + DATESUBMITTED.substr(6,2));
+    } else {
+        bt.moveTo(Sord, "¶EOFFICE¶PROTOCOLER¶" + SOPTYPE + "¶" + DATESUBMITTED.substr(0,4) + "¶" + DATESUBMITTED.substr(4,2) + "¶" + DATESUBMITTED.substr(6,2));
+    }
+    
+    EM_WF_NEXT = "0";
+
+    log.info("Process Rule - " + EM_WF_NODE.nodeName + " End");
+} else if (EM_WF_NODE.nodeName == "START_WF_PERMINTAAN_PERSEDIAAN_BIAYA") {
+    if (EM_ACT_SORD.maskName != "Protocoler") {
+        elo.setAnswer("Error: Folder bukan folder Protocoler");
+        return;
+    }
+    if (!Packages.de.elo.mover.utils.ELOAsSordUtils.isStructure(EM_ACT_SORD)) {
+        elo.setAnswer("Error: Ini bukan folder");
+        return;
+    }
+    var curSord = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO).sord;
+    var perihal = ix.getIndexValueByName(curSord, "PERIHAL");
+    var objId = folderNaming(441, perihal, 20); //441=Temporary // PROTOCOLER; 20=Protocoler (kwf)
+    var folderSord = ixConnect.ix().checkoutSord(objId, EditInfoC.mbSord, LockC.NO).sord;
+    ix.setIndexValueByName(folderSord, "DATESUBMITTED", ix.getIndexValueByName(curSord, "DATESUBMITTED")); //today harusnya
+    ix.setIndexValueByName(folderSord, "SOPTYPE", "PERMINTAAN PERSEDIAAN BIAYA");
+    ix.setIndexValueByName(folderSord, "DIVISION",  ix.getIndexValueByName(curSord, "DIVISION"));
+    ix.setIndexValueByName(folderSord, "PERIHAL",  ix.getIndexValueByName(curSord, "PERIHAL"));
+    ixConnect.ix().checkinSord(folderSord, SordC.mbAllIndex, LockC.NO);
+    elo.setAnswer("Proses berhasil");
+
+    EM_WF_NEXT = "0";
+} else if (EM_WF_NODE.nodeName == "START_WF_PENGADAAN_TIKET") {
+    if (EM_ACT_SORD.maskName != "Protocoler") {
+        elo.setAnswer("Error: Folder bukan folder Protocoler");
+        return;
+    }
+    if (!Packages.de.elo.mover.utils.ELOAsSordUtils.isStructure(EM_ACT_SORD)) {
+        elo.setAnswer("Error: Ini bukan folder");
+        return;
+    }
+    var curSord = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO).sord;
+    var perihal = ix.getIndexValueByName(curSord, "PERIHAL");
+    var objId = folderNaming(441, perihal, 20); //441=Temporary // PROTOCOLER; 20=Protocoler (kwf)
+    var folderSord = ixConnect.ix().checkoutSord(objId, EditInfoC.mbSord, LockC.NO).sord;
+    ix.setIndexValueByName(folderSord, "DATESUBMITTED", ix.getIndexValueByName(curSord, "DATESUBMITTED")); //today harusnya
+    ix.setIndexValueByName(folderSord, "SOPTYPE", "PERJALANAN DINAS");
+    ix.setIndexValueByName(folderSord, "DIVISION",  ix.getIndexValueByName(curSord, "DIVISION"));
+    ix.setIndexValueByName(folderSord, "PERIHAL",  ix.getIndexValueByName(curSord, "PERIHAL"));
+    ixConnect.ix().checkinSord(folderSord, SordC.mbAllIndex, LockC.NO);
+    elo.setAnswer("Proses berhasil");
+
+    EM_WF_NEXT = "0";
+} else if (EM_WF_NODE.nodeName == "START_WF_PERMINTAAN_PEMBAYARAN") {
+    if (EM_ACT_SORD.maskName != "Protocoler") {
+        elo.setAnswer("Error: Folder bukan folder Protocoler");
+        return;
+    }
+    if (!Packages.de.elo.mover.utils.ELOAsSordUtils.isStructure(EM_ACT_SORD)) {
+        elo.setAnswer("Error: Ini bukan folder");
+        return;
+    }
+    var curSord = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO).sord;
+    var perihal = ix.getIndexValueByName(curSord, "PERIHAL");
+    var objId = folderNaming(441, perihal, 20); //441=Temporary // PROTOCOLER; 20=Protocoler (kwf)
+    var folderSord = ixConnect.ix().checkoutSord(objId, EditInfoC.mbSord, LockC.NO).sord;
+    ix.setIndexValueByName(folderSord, "DATESUBMITTED", ix.getIndexValueByName(curSord, "DATESUBMITTED")); //today harusnya
+    ix.setIndexValueByName(folderSord, "SOPTYPE", "PERMINTAAN PEMBAYARAN");
+    ix.setIndexValueByName(folderSord, "DIVISION",  ix.getIndexValueByName(curSord, "DIVISION"));
+    ix.setIndexValueByName(folderSord, "PERIHAL",  ix.getIndexValueByName(curSord, "PERIHAL"));
+    ixConnect.ix().checkinSord(folderSord, SordC.mbAllIndex, LockC.NO);
+    elo.setAnswer("Proses berhasil");
+
+    EM_WF_NEXT = "0";
+} else if (EM_WF_NODE.nodeName == "START_WF_REALISASI_BIAYA") {
+    if (EM_ACT_SORD.maskName != "Protocoler") {
+        elo.setAnswer("Error: Folder bukan folder Protocoler");
+        return;
+    }
+    if (!Packages.de.elo.mover.utils.ELOAsSordUtils.isStructure(EM_ACT_SORD)) {
+        elo.setAnswer("Error: Ini bukan folder");
+        return;
+    }
+    var curSord = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO).sord;
+    var perihal = ix.getIndexValueByName(curSord, "PERIHAL");
+    var objId = folderNaming(441, perihal, 20); //441=Temporary // PROTOCOLER; 20=Protocoler (kwf)
+    var folderSord = ixConnect.ix().checkoutSord(objId, EditInfoC.mbSord, LockC.NO).sord;
+    ix.setIndexValueByName(folderSord, "DATESUBMITTED", ix.getIndexValueByName(curSord, "DATESUBMITTED")); //today harusnya
+    ix.setIndexValueByName(folderSord, "SOPTYPE", "REALISASI PERSEDIAAN BIAYA");
+    ix.setIndexValueByName(folderSord, "DIVISION",  ix.getIndexValueByName(curSord, "DIVISION"));
+    ix.setIndexValueByName(folderSord, "PERIHAL",  ix.getIndexValueByName(curSord, "PERIHAL"));
+    ixConnect.ix().checkinSord(folderSord, SordC.mbAllIndex, LockC.NO);
+    elo.setAnswer("Proses berhasil");
+
+    EM_WF_NEXT = "0";
+} else if (EM_WF_NODE.nodeName == "START_WF_SOP_041") {
+    if (EM_ACT_SORD.maskName != "Protocoler") {
+        elo.setAnswer("Error: Folder bukan folder Protocoler");
+        return;
+    }
+    if (!Packages.de.elo.mover.utils.ELOAsSordUtils.isStructure(EM_ACT_SORD)) {
+        elo.setAnswer("Error: Ini bukan folder");
+        return;
+    }
+    var curSord = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO).sord;
+    var perihal = ix.getIndexValueByName(curSord, "PERIHAL");
+    var objId = folderNaming(463, perihal, 26); //463=TEMPORARY // CORPORATE SUPPORT GROUP; 26=Payment Request (kwf)
+    var folderSord = ixConnect.ix().checkoutSord(objId, EditInfoC.mbSord, LockC.NO).sord;
+    ix.setIndexValueByName(folderSord, "DIVISIONPR", "CORPORATE SUPPORT GROUP");
+    ix.setIndexValueByName(folderSord, "DATESUBMITTED", ix.getIndexValueByName(curSord, "DATESUBMITTED"));
+    ix.setIndexValueByName(folderSord, "PRFLAG", "PR");
+    ix.setIndexValueByName(folderSord, "PRTYPE", "BIASA");
+    ixConnect.ix().checkinSord(folderSord, SordC.mbAllIndex, LockC.NO);
+    elo.setAnswer("Proses berhasil");
+
+    EM_WF_NEXT = "0";
+} else if (EM_WF_NODE.nodeName == "START_WF_SOP_042") {
+    if (EM_ACT_SORD.maskName != "Protocoler") {
+        elo.setAnswer("Error: Folder bukan folder Protocoler");
+        return;
+    }
+    if (!Packages.de.elo.mover.utils.ELOAsSordUtils.isStructure(EM_ACT_SORD)) {
+        elo.setAnswer("Error: Ini bukan folder");
+        return;
+    }
+    var curSord = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO).sord;
+    var perihal = ix.getIndexValueByName(curSord, "PERIHAL");
+    var objId = folderNaming(463, perihal, 26);
+    var folderSord = ixConnect.ix().checkoutSord(objId, EditInfoC.mbSord, LockC.NO).sord;
+    ix.setIndexValueByName(folderSord, "DIVISIONPR", "CORPORATE SUPPORT GROUP");
+    ix.setIndexValueByName(folderSord, "DATESUBMITTED", ix.getIndexValueByName(curSord, "DATESUBMITTED")); // today
+    ix.setIndexValueByName(folderSord, "PRFLAG", "PREPAID");
+    ix.setIndexValueByName(folderSord, "PRTYPE", "PREPAID");
+    ixConnect.ix().checkinSord(folderSord, SordC.mbAllIndex, LockC.NO);
+    elo.setAnswer("Proses berhasil");
+
+    EM_WF_NEXT = "0";
+} else if (EM_WF_NODE.nodeName == "START_WF_DIREKSI") {
+    if (EM_ACT_SORD.maskName != "Protocoler") {
+        elo.setAnswer("Error: Folder bukan folder Protocoler");
+        return;
+    }
+    if (!Packages.de.elo.mover.utils.ELOAsSordUtils.isStructure(EM_ACT_SORD)) {
+        elo.setAnswer("Error: Ini bukan folder");
+        return;
+    }
+    var curSord = ixConnect.ix().checkoutSord(EM_ACT_SORD.id, EditInfoC.mbSord, LockC.NO).sord;
+    var perihal = ix.getIndexValueByName(curSord, "PERIHAL");
+    var objId = folderNaming(512, perihal, 69); //512=Temporary // SURAT DIREKSI; 69=Register Surat Direksi (kwf)
+    var folderSord = ixConnect.ix().checkoutSord(objId, EditInfoC.mbSord, LockC.NO).sord;
+    ix.setIndexValueByName(folderSord, "DATETERIMA", ix.getIndexValueByName(curSord, "DATESUBMITTED")); //today harusnya
+    ix.setIndexValueByName(folderSord, "PERIHAL",  ix.getIndexValueByName(curSord, "PERIHAL"));
+    ix.setIndexValueByName(folderSord, "PENERIMA", "SURAT MASUK DK");
+    ix.setIndexValueByName(folderSord, "OBJID", curSord.id);   
+    ixConnect.ix().checkinSord(folderSord, SordC.mbAllIndex, LockC.NO);
+    elo.setAnswer("Proses berhasil");
+    
+    EM_WF_NEXT = "0";
+}
